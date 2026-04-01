@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #007A8A;
+  --color-primary-dark: #005f6b;
+  --color-secondary: #0A192F;
+  --color-accent: #00BCD4;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-muted: #64748B;
+  --color-danger: #E02424;
+  --color-success: #059669;
+  --color-warning: #D97706;
+
+  --font-inter: "Inter", sans-serif;
+  --font-outfit: "Outfit", sans-serif;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2.5rem;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --border-card: rgba(0, 0, 0, 0.08); 
+  --border-tab: rgba(0, 122, 138, 0.15);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter);
+}
+
+/* Custom Utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-card);
+}
+
+.card-tactical {
+  border: 1px solid var(--border-card);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-tactical:hover {
+  border-color: #007A8A;
+  box-shadow: 0 30px 60px -12px rgba(0, 122, 138, 0.15);
+  transform: translateY(-4px);
+}
+
+.text-gradient {
+  background: linear-gradient(to right, #007A8A, #00BCD4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
