@@ -16,86 +16,89 @@ import {
     Zap,
     Cpu,
     Plus,
-    FileText,
     TrendingUp,
     Clock,
-    AlertTriangle
+    AlertTriangle,
+    Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-const stats = [
-    { label: "Active Issues", value: "124", color: "text-primary" },
-    { label: "Avg Resolution", value: "2.1", suffix: "hrs", color: "text-secondary" },
-    { label: "Critical", value: "05", color: "text-danger" },
-];
-
-const incidentData = [
-    { 
-        id: "#JS-9842", 
-        type: "Main Pipe Leakage", 
-        risk: 85, 
-        riskColor: "bg-danger",
-        location: "Sector 14, Main Arterial", 
-        time: "Today, 09:42 AM", 
-        relativeTime: "24 mins ago",
-        severity: "CRITICAL", 
-        severityColor: "bg-danger/10 text-danger",
-        status: "PENDING", 
-        statusDot: "bg-primary",
-        actionLabel: "Assign Team",
-        actionVariant: "default" as const
-    },
-    { 
-        id: "#JS-9840", 
-        type: "Chemical Contamination", 
-        risk: 72, 
-        riskColor: "bg-blue-600",
-        location: "Indira Nagar, Lane 4", 
-        time: "Today, 08:15 AM", 
-        relativeTime: "1.5 hrs ago",
-        severity: "HIGH", 
-        severityColor: "bg-orange-100 text-orange-600",
-        status: "ASSIGNED", 
-        statusDot: "bg-blue-500",
-        actionLabel: "Update Status",
-        actionVariant: "outline" as const
-    },
-    { 
-        id: "#JS-9838", 
-        type: "Pump Failure", 
-        risk: 45, 
-        riskColor: "bg-teal-500",
-        location: "Lake Front Station B", 
-        time: "Yesterday, 11:30 PM", 
-        relativeTime: "10 hrs ago",
-        severity: "MEDIUM", 
-        severityColor: "bg-slate-100 text-slate-500",
-        status: "IN PROGRESS", 
-        statusDot: "bg-cyan-400",
-        actionLabel: "Update Status",
-        actionVariant: "outline" as const
-    },
-    { 
-        id: "#JS-9831", 
-        type: "Minor Seepage", 
-        risk: 12, 
-        riskColor: "bg-slate-300",
-        location: "Railway Colony North", 
-        time: "Yesterday, 04:20 PM", 
-        relativeTime: "17 hrs ago",
-        severity: "LOW", 
-        severityColor: "bg-slate-100 text-slate-400",
-        status: "RESOLVED", 
-        statusDot: "bg-secondary",
-        actionLabel: "View History",
-        actionVariant: "outline" as const
-    },
-];
+import { useIssues } from "@/hooks/useIssues";
+import type { WaterIssue } from "@/services/mongoService";
 
 export default function ProblemListPage() {
+    const { issues, editIssue, removeIssue, addReport, loading } = useIssues();
+    const [searchTerm, setSearchTerm] = React.useState("");
+
+    // Derive Stats
+    const stats = [
+        { label: "Active Issues", value: issues.filter(i => i.status !== "Resolved").length.toString(), color: "text-primary" },
+        { label: "Total Reports", value: issues.length.toString(), color: "text-secondary" },
+        { label: "Critical", value: issues.filter(i => i.severity === "CRITICAL" && i.status !== "Resolved").length.toString().padStart(2, '0'), color: "text-danger" },
+    ];
+
+    const filteredIssues = issues.filter(i => 
+        i.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        i.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        i.location.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const getSeverityConfig = (sev: string) => {
+        switch(sev) {
+            case "CRITICAL": return { color: "bg-danger/10 text-danger", risk: 95, riskColor: "bg-danger" };
+            case "HIGH": return { color: "bg-orange-100 text-orange-600", risk: 75, riskColor: "bg-orange-500" };
+            case "MEDIUM": return { color: "bg-blue-100 text-blue-600", risk: 45, riskColor: "bg-blue-500" };
+            default: return { color: "bg-slate-100 text-slate-500", risk: 15, riskColor: "bg-slate-400" };
+        }
+    };
+
+    const getStatusConfig = (status: string) => {
+        switch(status) {
+            case "Resolved": return { dot: "bg-success", label: "RESOLVED" };
+            case "In Progress": return { dot: "bg-cyan-400", label: "IN PROGRESS" };
+            case "Assigned": return { dot: "bg-blue-500", label: "ASSIGNED" };
+            default: return { dot: "bg-primary", label: "PENDING" };
+        }
+    };
+
+    const handleStatusUpdate = async (id: string, currentStatus: string) => {
+        const statuses: WaterIssue["status"][] = ["Pending", "Assigned", "In Progress", "Resolved"];
+        const currentIndex = statuses.indexOf(currentStatus as WaterIssue["status"]);
+        const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+        
+        const success = await editIssue(id, { status: nextStatus });
+    };
+
+    const handleGenerateReport = async (issue: WaterIssue) => {
+        await addReport({
+            issueId: issue.id,
+            title: `Resolution Report: ${issue.title}`,
+            content: `Emergency response completed for ${issue.id}. Issue at ${issue.location} has been successfully resolved by the municipal maintenance team. All systems back to normal operational parameters.`,
+            generatedBy: "System Admin"
+        });
+        alert("Report generated successfully!");
+    };
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Are you sure you want to delete this issue permanently?")) {
+            await removeIssue(id);
+        }
+    };
+
+    const formatRelativeTime = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 60) return `${diffMins} mins ago`;
+        const diffHrs = Math.floor(diffMins / 60);
+        if (diffHrs < 24) return `${diffHrs} hrs ago`;
+        return `${Math.floor(diffHrs / 24)} days ago`;
+    };
+
     return (
         <div className="space-y-10 pb-20">
             {/* Header Section */}
@@ -131,6 +134,8 @@ export default function ProblemListPage() {
                     <div className="relative flex-1 min-w-[300px] group">
                         <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-primary transition-colors" />
                         <Input 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Find by Issue ID, Sector or Asset ID..." 
                             className="h-14 pl-16 bg-slate-50 border-none rounded-2xl text-xs font-black placeholder:text-slate-300 focus-visible:ring-1 focus-visible:ring-primary/20 transition-all shadow-inner"
                         />
@@ -144,7 +149,7 @@ export default function ProblemListPage() {
                     {/* Date Picker Mock */}
                     <div className="h-14 flex items-center gap-4 px-6 bg-slate-50 border border-slate-100 rounded-2xl cursor-pointer group hover:bg-slate-100 transition-colors">
                         <Calendar className="w-4 h-4 text-slate-400 group-hover:text-primary transition-colors" />
-                        <span className="text-xs font-black text-secondary tracking-tight">Oct 12 - Oct 19, 2023</span>
+                        <span className="text-xs font-black text-secondary tracking-tight">Active Selection</span>
                     </div>
 
                     <Button className="h-14 px-10 bg-secondary hover:bg-secondary/90 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-secondary/20 ml-auto">
@@ -154,7 +159,12 @@ export default function ProblemListPage() {
             </Card>
 
             {/* Main Table */}
-            <Card className="shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden border-slate-100">
+            <Card className="shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden border-slate-100 min-h-[400px]">
+                {loading ? (
+                   <div className="flex items-center justify-center h-64">
+                       <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                   </div>
+                ) : (
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead>
@@ -169,23 +179,26 @@ export default function ProblemListPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {incidentData.map((item, i) => (
-                                <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                            {filteredIssues.map((item, i) => {
+                                const sev = getSeverityConfig(item.severity);
+                                const stat = getStatusConfig(item.status);
+                                return (
+                                <tr key={item.id} className="group hover:bg-slate-50/50 transition-colors">
                                     <td className="px-10 py-8">
                                         <span className="text-sm font-black text-primary tracking-tighter cursor-pointer hover:underline">{item.id}</span>
                                     </td>
                                     <td className="px-8 py-8">
                                         <div className="space-y-2">
-                                            <div className="text-base font-black text-secondary tracking-tight">{item.type}</div>
+                                            <div className="text-base font-black text-secondary tracking-tight">{item.title}</div>
                                             <div className="flex items-center gap-3 w-32">
                                                 <div className="h-2 flex-1 bg-slate-100 rounded-full overflow-hidden">
                                                     <motion.div 
                                                         initial={{ width: 0 }}
-                                                        whileInView={{ width: `${item.risk}%` }}
-                                                        className={cn("h-full", item.riskColor)} 
+                                                        animate={{ width: `${sev.risk}%` }}
+                                                        className={cn("h-full", sev.riskColor)} 
                                                     />
                                                 </div>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase">{item.risk} Risk</span>
+                                                <span className="text-[10px] font-black text-slate-400 uppercase">{sev.risk} Risk</span>
                                             </div>
                                         </div>
                                     </td>
@@ -196,62 +209,80 @@ export default function ProblemListPage() {
                                             </div>
                                             <div>
                                                 <div className="text-sm font-bold text-secondary tracking-tight">{item.location}</div>
-                                                <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Main Arterial</div>
+                                                <div className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">MUNICIPAL WEB-REPORT</div>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-8 py-8">
-                                        <div className="text-sm font-black text-secondary tracking-tight">{item.time}</div>
-                                        <div className="text-[10px] font-bold text-slate-400 mt-1 italic">{item.relativeTime}</div>
+                                        <div className="text-sm font-black text-secondary tracking-tight">{new Date(item.createdAt).toLocaleDateString()}</div>
+                                        <div className="text-[10px] font-bold text-slate-400 mt-1 italic">{formatRelativeTime(item.createdAt)}</div>
                                     </td>
                                     <td className="px-8 py-8 text-center">
-                                        <span className={cn("px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest inline-block border border-slate-100", item.severityColor)}>
+                                        <span className={cn("px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest inline-block border border-slate-100", sev.color)}>
                                             {item.severity}
                                         </span>
                                     </td>
                                     <td className="px-8 py-8 text-center">
                                         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-50 rounded-full border border-slate-100">
-                                            <div className={cn("w-2 h-2 rounded-full", item.statusDot)} />
-                                            <span className="text-[9px] font-black text-secondary uppercase tracking-[0.15em]">{item.status}</span>
+                                            <div className={cn("w-2 h-2 rounded-full", stat.dot)} />
+                                            <span className="text-[9px] font-black text-secondary uppercase tracking-[0.15em]">{stat.label}</span>
                                         </div>
                                     </td>
                                     <td className="px-10 py-8 text-right">
                                         <div className="flex items-center justify-end gap-4">
                                             <Button 
-                                                variant={item.actionVariant}
+                                                onClick={() => handleStatusUpdate(item.id, item.status)}
                                                 size="sm" 
                                                 className={cn(
-                                                    "h-10 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest",
-                                                    item.actionVariant === 'outline' ? "border-slate-100 text-secondary hover:bg-slate-50" : "bg-secondary text-white hover:bg-secondary/90"
+                                                    "h-10 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                    item.status === "Resolved" ? "bg-success text-white" : "bg-secondary text-white hover:bg-secondary/90"
                                                 )}
                                             >
-                                                {item.actionLabel}
+                                                {item.status === "Pending" ? "Assign Team" : 
+                                                 item.status === "Assigned" ? "Start Work" :
+                                                 item.status === "In Progress" ? "Resolve" : "Restart Cycle"}
                                             </Button>
+
+                                            {item.status === "Resolved" && (
+                                                <Button 
+                                                    onClick={() => handleGenerateReport(item)}
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    className="h-10 px-4 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest border border-primary/20"
+                                                >
+                                                    <FileText className="w-3.5 h-3.5 mr-2" />
+                                                    Report
+                                                </Button>
+                                            )}
+
+                                            <button 
+                                                onClick={() => handleDelete(item.id)}
+                                                className="w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center text-danger hover:bg-danger hover:text-white transition-all"
+                                                title="Delete Issue"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+
                                             <button className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary transition-colors">
                                                 <Eye className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            )})}
                         </tbody>
                     </table>
                 </div>
+                )}
                 
                 {/* Pagination */}
                 <div className="px-10 py-8 bg-slate-50/50 flex items-center justify-between">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
-                        Showing 1 to 4 of 124 entries
-                    </div>
-                    <div className="flex gap-2">
-                        <PaginationButton label="1" active />
-                        <PaginationButton label="2" />
-                        <PaginationButton label="3" />
-                        <PaginationButton label="..." disabled />
-                        <PaginationButton label=">" />
+                        Showing {filteredIssues.length} entries
                     </div>
                 </div>
             </Card>
+
 
             {/* Bottom Section - Action Cards */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

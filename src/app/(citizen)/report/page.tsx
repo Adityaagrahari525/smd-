@@ -17,6 +17,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useIssues } from "@/hooks/useIssues";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import { calculateDistance, formatDistance, MC_COORDINATES } from "@/lib/geo";
 
 interface PickedLocation {
     lat: number;
@@ -27,10 +31,16 @@ export default function ReportIssuePage() {
     const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
     const [description, setDescription] = React.useState("");
     const [citizenName, setCitizenName] = React.useState("");
+    const [category, setCategory] = React.useState<string>("Leakage");
+    const [severity, setSeverity] = React.useState<WaterIssue["severity"]>("MEDIUM");
     const [pickedLocation, setPickedLocation] = React.useState<PickedLocation | null>(null);
     const [submitted, setSubmitted] = React.useState(false);
     const [gpsLoading, setGpsLoading] = React.useState(false);
     const [gpsError, setGpsError] = React.useState<string | null>(null);
+    const { addIssue } = useIssues();
+    const { user } = useAuth();
+    const router = useRouter();
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     // Refs for Leaflet
     const mapRef = React.useRef<HTMLDivElement>(null);
@@ -154,7 +164,15 @@ export default function ReportIssuePage() {
         mapInstanceRef.current?.setView([19.076, 72.8777], 13);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setCapturedImage(file.name); // Store filename as reference
+            // For real apps, we'd upload here. For mock, just show filename.
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!pickedLocation) {
@@ -165,58 +183,78 @@ export default function ReportIssuePage() {
             alert("Please provide a description with at least 20 characters.");
             return;
         }
+        if (!user) {
+            alert("You must be logged in to submit a report.");
+            return;
+        }
 
-        const issue = {
-            name: citizenName || "Anonymous Citizen",
+        const success = await addIssue({
+            userId: user.id,
+            title: `${category}: ${description.substring(0, 20)}...`,
             description,
+            location: `Sector ${Math.floor(Math.random() * 10)}-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
             lat: pickedLocation.lat,
             lng: pickedLocation.lng,
-            time: new Date().toISOString(),
-        };
+            status: "Pending",
+            severity: severity,
+            evidenceUrl: capturedImage || undefined,
+        });
 
-        // Save to localStorage
-        const existing = JSON.parse(localStorage.getItem("civicIssues") || "[]");
-        existing.push(issue);
-        localStorage.setItem("civicIssues", JSON.stringify(existing));
-
-        // Reset
-        setSubmitted(true);
-        setDescription("");
-        setCitizenName("");
-        setPickedLocation(null);
-        if (markerRef.current && mapInstanceRef.current) {
-            mapInstanceRef.current.removeLayer(markerRef.current);
-            markerRef.current = null;
+        if (success) {
+            setSubmitted(true);
+            setDescription("");
+            setCitizenName("");
+            setPickedLocation(null);
+            setCapturedImage(null);
+            if (markerRef.current && mapInstanceRef.current) {
+                mapInstanceRef.current.removeLayer(markerRef.current);
+                markerRef.current = null;
+            }
+            mapInstanceRef.current?.setView([19.076, 72.8777], 13);
         }
-        mapInstanceRef.current?.setView([19.076, 72.8777], 13);
-
-        setTimeout(() => setSubmitted(false), 4000);
     };
 
     return (
         <div className="pb-24">
             {/* Page Header */}
-            <div className="mb-8">
-                <h1 className="text-4xl font-black text-secondary tracking-tight">
-                    Report a New <span className="italic text-primary font-serif font-bold">Issue</span>
-                </h1>
-                <p className="text-slate-500 mt-2 max-w-xl text-sm leading-relaxed">
-                    Help us maintain the integrity of our water infrastructure. Your reports are
-                    processed by our rapid response teams within 24 hours.
-                </p>
-            </div>
-
-            {/* Success Banner */}
+            {/* Success Popup Modal */}
             {submitted && (
-                <motion.div
-                    initial={{ opacity: 0, y: -12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -12 }}
-                    className="mb-6 flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-xl"
-                >
-                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
-                    <span className="text-sm font-bold text-green-700">Issue submitted successfully! Our team has been notified.</span>
-                </motion.div>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-secondary/40 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl border border-slate-100/50 text-center relative overflow-hidden"
+                    >
+                        {/* Decorative Background Elements */}
+                        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-primary-dark" />
+                        <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary/5 rounded-full blur-2xl" />
+                        
+                        <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <CheckCircle className="w-10 h-10 text-primary" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-black text-secondary mb-4 tracking-tight">Report Received</h2>
+                        <p className="text-slate-500 text-sm leading-relaxed mb-8 font-medium">
+                            Your report has been successfully submitted to the <span className="text-secondary font-bold">Municipal Corporation</span>. 
+                            Our engineers will review the issue, assign a response team, and update your status shortly.
+                        </p>
+                        
+                        <div className="space-y-3">
+                            <Button 
+                                onClick={() => router.push("/overview")}
+                                className="w-full h-14 bg-secondary hover:bg-secondary/90 text-white rounded-xl font-bold uppercase tracking-widest text-xs gap-2"
+                            >
+                                View My Dashboard <ArrowRight className="w-4 h-4" />
+                            </Button>
+                            <button 
+                                onClick={() => setSubmitted(false)}
+                                className="text-xs font-black text-slate-400 hover:text-primary uppercase tracking-[0.2em] transition-colors"
+                            >
+                                Submit Another Report
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
             )}
 
             <form onSubmit={handleSubmit}>
@@ -238,15 +276,75 @@ export default function ReportIssuePage() {
                             />
                         </Card>
 
+                        {/* Issue Category */}
+                        <Card className="border border-slate-200 rounded-2xl p-6 bg-white shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-1 h-6 bg-primary rounded-full" />
+                                <h3 className="text-base font-bold text-secondary">Issue Category</h3>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                {["Leakage", "Pressure", "Quality", "Other"].map((cat) => (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => setCategory(cat)}
+                                        className={cn(
+                                            "py-3 rounded-xl border text-xs font-bold transition-all",
+                                            category === cat 
+                                                ? "bg-primary/10 border-primary text-primary shadow-sm"
+                                                : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100"
+                                        )}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </Card>
+
+                        {/* Severity Assessment */}
+                        <Card className="border border-slate-200 rounded-2xl p-6 bg-white shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-1 h-6 bg-primary rounded-full" />
+                                <h3 className="text-base font-bold text-secondary">Severity Assessment</h3>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2">
+                                {(["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const).map((sev) => (
+                                    <button
+                                        key={sev}
+                                        type="button"
+                                        onClick={() => setSeverity(sev)}
+                                        className={cn(
+                                            "py-2.5 rounded-lg border text-[10px] font-black tracking-widest transition-all",
+                                            severity === sev 
+                                                ? "bg-secondary text-white border-secondary shadow-md"
+                                                : "bg-slate-50 border-slate-100 text-slate-400 hover:bg-slate-100"
+                                        )}
+                                    >
+                                        {sev}
+                                    </button>
+                                ))}
+                            </div>
+                        </Card>
+
                         {/* Upload Evidence */}
                         <Card className="border border-slate-200 rounded-2xl p-8 bg-white shadow-sm">
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                hidden 
+                                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" 
+                                onChange={handleFileChange} 
+                            />
                             {!capturedImage ? (
-                                <div className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-slate-200 rounded-xl hover:border-primary/40 transition-colors cursor-pointer group">
+                                <div 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex flex-col items-center justify-center py-8 text-center border-2 border-dashed border-slate-200 rounded-xl hover:border-primary/40 transition-colors cursor-pointer group"
+                                >
                                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                                         <Camera className="w-7 h-7 text-primary" />
                                     </div>
                                     <h3 className="text-base font-bold text-secondary mb-1">Upload Evidence</h3>
-                                    <p className="text-xs text-slate-400 mb-5">Drag and drop images of leakages or contamination</p>
+                                    <p className="text-xs text-slate-400 mb-5">Select images (JPG, PNG), PDF, or Word documents</p>
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -256,14 +354,16 @@ export default function ReportIssuePage() {
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="relative rounded-xl overflow-hidden group">
-                                    <img src={capturedImage} alt="Evidence" className="w-full aspect-video object-cover" />
+                                <div className="p-6 border-2 border-primary/20 bg-primary/5 rounded-xl text-center relative group">
+                                    <CheckCircle className="w-10 h-10 text-success mx-auto mb-3" />
+                                    <h4 className="text-sm font-bold text-secondary truncate px-4">{capturedImage}</h4>
+                                    <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-widest font-black">Ready for upload</p>
                                     <button
                                         type="button"
                                         onClick={() => setCapturedImage(null)}
-                                        className="absolute top-3 right-3 p-1.5 bg-black/40 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                        className="mt-4 text-[10px] font-black text-red-500 hover:text-red-600 uppercase tracking-widest"
                                     >
-                                        <X className="w-4 h-4" />
+                                        Remove File
                                     </button>
                                 </div>
                             )}
@@ -342,6 +442,12 @@ export default function ReportIssuePage() {
                                             : "Click on the map to select a location"
                                         }
                                     </div>
+                                    {pickedLocation && (
+                                        <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold text-primary italic uppercase tracking-widest">
+                                            <Navigation className="w-3 h-3" />
+                                            {formatDistance(calculateDistance(pickedLocation.lat, pickedLocation.lng, MC_COORDINATES.lat, MC_COORDINATES.lng))} FROM MUNICIPAL CORP
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </Card>

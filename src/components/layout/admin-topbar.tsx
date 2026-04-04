@@ -10,8 +10,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { User } from "lucide-react";
 
 export function AdminTopbar() {
+    const { user } = useAuth();
     return (
         <header className="h-20 bg-white border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-20 shadow-sm">
             <div className="flex items-center gap-6 flex-1">
@@ -43,11 +46,15 @@ export function AdminTopbar() {
 
                 <div className="flex items-center gap-3 pl-2">
                     <div className="text-right hidden sm:block">
-                        <div className="text-sm font-black text-secondary leading-tight">Arjun Mehta</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Chief Administrator</div>
+                        <div className="text-sm font-black text-secondary leading-tight truncate max-w-[120px]">{user?.email.split('@')[0] || "Arjun Mehta"}</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.role === 'admin' ? "Chief Administrator" : "Operator"}</div>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 shadow-sm">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" />
+                    <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center">
+                        {user?.email ? (
+                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Admin" />
+                        ) : (
+                            <User className="w-5 h-5 text-slate-400" />
+                        )}
                     </div>
                 </div>
             </div>

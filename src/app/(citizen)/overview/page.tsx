@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     Search,
     Filter,
@@ -18,11 +18,24 @@ import {
     TrendingUp,
     MapPin,
     BarChart2,
-    Plus
+    Plus,
+    Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useIssues } from "@/hooks/useIssues";
+import { useAuth } from "@/hooks/useAuth";
+import { getCleanUsername } from "@/services/mongoService";
+import { ThumbsUp, MessageSquare, Send } from "lucide-react";
+
+// Helper for type icons (not in the DB model)
+const getIssueIcon = (title: string) => {
+    if (title.toLowerCase().includes("leak")) return Droplets;
+    if (title.toLowerCase().includes("contamination")) return Activity;
+    if (title.toLowerCase().includes("pressure")) return AlertTriangle;
+    return Droplets;
+};
 
 const issues = [
     {
@@ -91,7 +104,31 @@ const topSectors = [
 
 export default function OverviewPage() {
     const [search, setSearch] = React.useState("");
-    const [activeTab, setActiveTab] = React.useState("All Issues");
+    const [selectedSector, setSelectedSector] = React.useState("All Sectors");
+    const [selectedStatus, setSelectedStatus] = React.useState("All Statuses");
+    const [expandedComments, setExpandedComments] = React.useState<string | null>(null);
+    const [newComment, setNewComment] = React.useState("");
+    
+    const { user } = useAuth();
+    
+    // Connect to dynamic data
+    const { issues, removeIssue, addReaction, addComment } = useIssues({ isApproved: true });
+
+    const filteredIssues = issues.filter(issue => {
+        const isNotResolved = issue.status !== "Resolved";
+        const matchesSearch = issue.id.toLowerCase().includes(search.toLowerCase()) || 
+                             issue.location.toLowerCase().includes(search.toLowerCase()) ||
+                             issue.title.toLowerCase().includes(search.toLowerCase());
+        const matchesSector = selectedSector === "All Sectors" || issue.location === selectedSector;
+        const matchesStatus = selectedStatus === "All Statuses" || issue.status === selectedStatus;
+        return isNotResolved && matchesSearch && matchesSector && matchesStatus;
+    });
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Are you sure you want to delete this issue report?")) {
+            await removeIssue(id);
+        }
+    };
 
     return (
         <div className="pb-12">
@@ -137,18 +174,28 @@ export default function OverviewPage() {
                         className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-secondary placeholder:text-slate-300"
                     />
                 </div>
-                <select className="text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
+                <select 
+                    value={selectedSector}
+                    onChange={e => setSelectedSector(e.target.value)}
+                    className="text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto"
+                >
                     <option>All Sectors</option>
                     <option>Sector 4-C</option>
                     <option>Sector 9-G</option>
+                    <option>Industrial Hub</option>
+                    <option>Sector 1-A</option>
                 </select>
-                <select className="text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
+                <select 
+                    value={selectedStatus}
+                    onChange={e => setSelectedStatus(e.target.value)}
+                    className="text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto"
+                >
                     <option>All Statuses</option>
                     <option>Pending</option>
                     <option>In Progress</option>
                     <option>Resolved</option>
                 </select>
-                <Button variant="outline" className="rounded-xl border-slate-200 text-slate-500 text-sm gap-2 hover:text-primary hover:border-primary/30 transition-all">
+                <Button variant="outline" className="rounded-xl border-slate-200 text-slate-500 text-sm gap-2 hover:text-primary hover:border-primary/30 transition-all w-full sm:w-auto justify-center">
                     <Filter className="w-4 h-4" /> Advanced Filters
                 </Button>
                 <Button variant="outline" className="rounded-xl border-slate-200 text-slate-500 text-sm gap-2 hover:text-primary hover:border-primary/30 transition-all">
@@ -158,65 +205,245 @@ export default function OverviewPage() {
 
             {/* Issues Table */}
             <Card className="border border-slate-200 rounded-2xl bg-white shadow-sm overflow-hidden mb-8">
-                <table className="w-full">
-                    <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50/50">
-                            <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Issue ID</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Location (Sector)</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Type</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Severity</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Status</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Date Reported</th>
-                            <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {issues.map((issue, i) => (
-                            <motion.tr
-                                key={issue.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.05 }}
-                                className="hover:bg-slate-50/50 transition-colors group"
-                            >
-                                <td className="px-6 py-4">
-                                    <span className="text-sm font-bold text-primary">{issue.id}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="text-sm font-bold text-secondary">{issue.location}</div>
-                                    <div className="text-xs text-slate-400">{issue.sublocation}</div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                        <issue.typeIcon className="w-4 h-4 text-primary" />
-                                        {issue.type}
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <div className="flex items-center gap-2">
-                                        <span className={cn("text-sm font-black", issue.severityColor)}>●  {issue.severity}</span>
-                                        <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full", issue.severityBg, issue.severityColor)}>
-                                            {issue.severityLabel}
-                                        </span>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={cn("text-xs font-bold px-3 py-1.5 rounded-full border", issue.statusColor)}>
-                                        {issue.status}
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-slate-100 bg-slate-50/50">
+                                <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Issue ID</th>
+                                <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Location (Sector)</th>
+                                <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Type</th>
+                                <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Severity</th>
+                                <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Status</th>
+                                <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Date Reported</th>
+                                <th className="text-left px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filteredIssues.map((issue, i) => (
+                                <motion.tr
+                                    key={issue.id}
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.05 }}
+                                    className="hover:bg-slate-50/50 transition-colors group"
+                                >
+                                    <td className="px-6 py-4">
+                                        <span className="text-sm font-bold text-primary">{issue.id}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="text-sm font-bold text-secondary">{issue.location}</div>
+                                        <div className="text-xs text-slate-400">{issue.description.substring(0, 30)}...</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                                            {React.createElement(getIssueIcon(issue.title), { className: "w-4 h-4 text-primary" })}
+                                            {issue.title}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn("text-sm font-black", 
+                                                issue.severity === "CRITICAL" ? "text-red-500" :
+                                                issue.severity === "HIGH" ? "text-orange-500" :
+                                                issue.severity === "MEDIUM" ? "text-amber-500" : "text-green-500"
+                                            )}>●  {issue.severity}</span>
+                                            <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full",
+                                                issue.severity === "CRITICAL" ? "bg-red-50 text-red-500" :
+                                                issue.severity === "HIGH" ? "bg-orange-50 text-orange-500" :
+                                                issue.severity === "MEDIUM" ? "bg-amber-50 text-amber-500" : "bg-green-50 text-green-500"
+                                            )}>
+                                                {issue.severity}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col gap-1">
+                                            <span className={cn("text-xs font-bold px-3 py-1.5 rounded-full border w-fit", 
+                                                issue.status === "Pending" ? "text-amber-600 bg-amber-50 border-amber-200" :
+                                                issue.status === "In Progress" ? "text-blue-600 bg-blue-50 border-blue-200" :
+                                                "text-green-600 bg-green-50 border-green-200"
+                                            )}>
+                                                {issue.status}
+                                            </span>
+                                            {issue.assignedTeam && (
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">{issue.assignedTeam}</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-slate-500">{new Date(issue.createdAt).toLocaleDateString()}</span>
+                                            {issue.estimatedTime && (
+                                                <span className="text-[10px] font-bold text-primary italic uppercase tracking-tighter">ETA: {issue.estimatedTime}</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex items-center gap-3">
+                                                <button 
+                                                    onClick={() => user && addReaction(issue.id, user.id)}
+                                                    className={cn(
+                                                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-black transition-all",
+                                                        issue.reactions?.includes(user?.id || "")
+                                                            ? "bg-primary/10 border-primary/20 text-primary"
+                                                            : "bg-slate-50 border-slate-100 text-slate-400 hover:text-primary hover:border-primary/20"
+                                                    )}
+                                                >
+                                                    <ThumbsUp className="w-3.5 h-3.5" />
+                                                    SUPPORT {(issue.reactions?.length || 0) > 0 && `(${issue.reactions?.length})`}
+                                                </button>
+                                                <button 
+                                                    onClick={() => setExpandedComments(expandedComments === issue.id ? null : issue.id)}
+                                                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-100 text-slate-400 hover:text-secondary hover:border-secondary/20 text-[10px] font-black transition-all"
+                                                >
+                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                    REPLY {(issue.comments?.length || 0) > 0 && `(${issue.comments?.length})`}
+                                                </button>
+                                            </div>
+
+                                            {/* Expandable Comments Section */}
+                                            <AnimatePresence>
+                                                {expandedComments === issue.id && (
+                                                    <motion.div 
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: "auto" }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        className="overflow-hidden"
+                                                    >
+                                                        <div className="pt-2 border-t border-slate-50 flex flex-col gap-2">
+                                                            {issue.comments?.map((c, idx) => (
+                                                                <div key={idx} className="bg-slate-50/50 p-2 rounded-lg text-[11px]">
+                                                                    <div className="flex justify-between items-start mb-0.5">
+                                                                        <span className="font-bold text-secondary">{c.userName}</span>
+                                                                        <span className="text-[9px] text-slate-400 font-medium">{new Date(c.createdAt).toLocaleDateString()}</span>
+                                                                    </div>
+                                                                    <p className="text-slate-500 leading-relaxed italic">"{c.text}"</p>
+                                                                </div>
+                                                            ))}
+                                                            
+                                                            {user && (
+                                                                <div className="flex items-center gap-2 mt-1">
+                                                                    <input 
+                                                                        value={newComment}
+                                                                        onChange={e => setNewComment(e.target.value)}
+                                                                        placeholder="Write a message..."
+                                                                        className="flex-1 h-8 bg-white border border-slate-200 rounded-lg px-3 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary/30"
+                                                                        onKeyDown={async (e) => {
+                                                                            if (e.key === 'Enter' && newComment.trim()) {
+                                                                                await addComment(issue.id, {
+                                                                                    userId: user.id,
+                                                                                    userName: getCleanUsername(user.email),
+                                                                                    text: newComment
+                                                                                });
+                                                                                setNewComment("");
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <button 
+                                                                        disabled={!newComment.trim()}
+                                                                        onClick={async () => {
+                                                                            await addComment(issue.id, {
+                                                                                userId: user.id,
+                                                                                userName: getCleanUsername(user.email),
+                                                                                text: newComment
+                                                                            });
+                                                                            setNewComment("");
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all disabled:opacity-50"
+                                                                    >
+                                                                        <Send className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </td>
+                                </motion.tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-slate-100">
+                    {filteredIssues.map((issue, i) => (
+                        <motion.div
+                            key={issue.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="p-5 flex flex-col gap-4"
+                        >
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <div className="text-xs font-black text-primary mb-1">{issue.id}</div>
+                                    <div className="text-base font-bold text-secondary">{issue.location}</div>
+                                    <div className="text-xs text-slate-400 line-clamp-1">{issue.description}</div>
+                                </div>
+                                <span className={cn("text-[10px] font-bold px-3 py-1 rounded-full border shrink-0", 
+                                    issue.status === "Pending" ? "text-amber-600 bg-amber-50 border-amber-200" :
+                                    issue.status === "In Progress" ? "text-blue-600 bg-blue-50 border-blue-200" :
+                                    "text-green-600 bg-green-50 border-green-200"
+                                )}>
+                                    {issue.status}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                                    {React.createElement(getIssueIcon(issue.title), { className: "w-3.5 h-3.5 text-primary" })}
+                                    {issue.title}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className={cn("text-xs font-black", 
+                                        issue.severity === "CRITICAL" ? "text-red-500" :
+                                        issue.severity === "HIGH" ? "text-orange-500" :
+                                        issue.severity === "MEDIUM" ? "text-amber-500" : "text-green-500"
+                                    )}>●  {issue.severity}</span>
+                                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full",
+                                        issue.severity === "CRITICAL" ? "bg-red-50 text-red-500" :
+                                        issue.severity === "HIGH" ? "bg-orange-50 text-orange-500" :
+                                        issue.severity === "MEDIUM" ? "bg-amber-50 text-amber-500" : "bg-green-50 text-green-500"
+                                    )}>
+                                        {issue.severity}
                                     </span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className="text-sm text-slate-500">{issue.date}</span>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <button className="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center hover:bg-primary hover:border-primary hover:text-white text-slate-400 transition-all group-hover:scale-110">
-                                        <Eye className="w-4 h-4" />
-                                    </button>
-                                </td>
-                            </motion.tr>
-                        ))}
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-2">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400">{new Date(issue.createdAt).toLocaleDateString()}</span>
+                                    {issue.assignedTeam && (
+                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{issue.assignedTeam}</span>
+                                    )}
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" className="h-8 rounded-lg text-[10px] gap-2 border-slate-200">
+                                        <Eye className="w-3.5 h-3.5" /> Details
+                                    </Button>
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => handleDelete(issue.id)}
+                                        className="h-8 rounded-lg text-[10px] gap-2 border-red-100 text-red-400 hover:bg-red-50"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                    {filteredIssues.length === 0 && (
+                        <div className="p-10 text-center text-slate-400 italic text-sm">
+                            No issues found matching your criteria.
+                        </div>
+                    )}
+                </div>
 
                 {/* Pagination */}
                 <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">

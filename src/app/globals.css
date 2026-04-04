@@ -54,8 +54,8 @@ body {
 
 .card-tactical:hover {
   border-color: #007A8A;
-  box-shadow: 0 30px 60px -12px rgba(0, 122, 138, 0.15);
-  transform: translateY(-4px);
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  transform: scale(1.03);
 }
 
 .text-gradient {

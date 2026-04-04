@@ -12,20 +12,32 @@ import {
     MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
     const [activeTab, setActiveTab] = React.useState<"citizen" | "authority">("citizen");
     const [showPassword, setShowPassword] = React.useState(false);
     const [remember, setRemember] = React.useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const { signIn } = useAuth();
+    const redirectPath = searchParams.get("redirect");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (activeTab === "citizen") {
-            router.push("/overview");
-        } else {
-            router.push("/dashboard");
+        
+        // Use the signIn from useAuth - currently a mock but wired up
+        const success = await signIn("demo@example.com", "password");
+
+        if (success) {
+            if (redirectPath) {
+                router.push(redirectPath);
+            } else if (activeTab === "citizen") {
+                router.push("/overview");
+            } else {
+                router.push("/dashboard");
+            }
         }
     };
 

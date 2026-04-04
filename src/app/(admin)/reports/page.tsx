@@ -24,7 +24,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useIssues } from "@/hooks/useIssues";
+import { Trash2 } from "lucide-react";
 
 const reportHistory = [
     { type: "Oct_2023_Monthly_Audit.pdf", date: "Oct 31, 2023", generatedBy: "System Auto-Gen", size: "4.2 MB", icon: FileText, color: "text-primary" },
@@ -38,6 +40,40 @@ const aiSummaries = [
 ];
 
 export default function ReportsPage() {
+    const { reports, addReport, removeReport, issues } = useIssues();
+    const [isGenerating, setIsGenerating] = React.useState(false);
+    
+    const handleGenerateReport = async () => {
+        const title = prompt("Enter Report Title:");
+        if (!title) return;
+        const content = prompt("Enter Report Content:");
+        if (!content) return;
+
+        setIsGenerating(true);
+        await addReport({
+            title,
+            content,
+            generatedBy: "Admin Manual"
+        });
+        setIsGenerating(false);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Permanently delete this report?")) {
+            await removeReport(id);
+        }
+    };
+
+    // Calculate real efficiency (based on resolved issues)
+    const resolvedCount = issues.filter(i => i.status === "Resolved").length;
+    const complianceRate = issues.length > 0 
+        ? Math.round((resolvedCount / issues.length) * 100) 
+        : 100;
+
+    // Use latest reports for AI summaries (mocking the AI part but using real report data)
+    const displayReports = reports.slice(0, 3);
+
+
     return (
         <div className="space-y-12 pb-24">
             {/* Header Section */}
@@ -48,8 +84,17 @@ export default function ReportsPage() {
                         Centralized regulatory monitoring and automated data distillation for the JalSuraksha ecosystem.
                     </p>
                 </div>
-                <Button className="h-16 px-10 bg-[#007A8A] hover:bg-[#00606D] text-white rounded-[1.25rem] font-black uppercase tracking-widest gap-4 shadow-2xl shadow-[#007A8A]/20 transition-all hover:scale-[1.03] active:scale-95 shrink-0">
-                    <Plus className="w-5 h-5" /> Generate Custom Report
+                <Button 
+                    onClick={handleGenerateReport}
+                    disabled={isGenerating}
+                    className="h-16 px-10 bg-[#007A8A] hover:bg-[#00606D] text-white rounded-[1.25rem] font-black uppercase tracking-widest gap-4 shadow-2xl shadow-[#007A8A]/20 transition-all hover:scale-[1.03] active:scale-95 shrink-0"
+                >
+                    {isGenerating ? (
+                        <Activity className="w-5 h-5 animate-spin" />
+                    ) : (
+                        <Plus className="w-5 h-5" />
+                    )}
+                    {isGenerating ? "Compiling Data..." : "Generate Custom Report"}
                 </Button>
             </div>
 
@@ -67,9 +112,9 @@ export default function ReportsPage() {
                             </div>
 
                             <div className="flex items-baseline gap-4 mb-20">
-                                <span className="text-8xl font-black text-secondary tracking-tighter italic">98%</span>
+                                <span className="text-8xl font-black text-secondary tracking-tighter italic">{complianceRate}%</span>
                                 <div className="flex items-center gap-1.5 text-sm font-black text-[#007A8A] animate-pulse">
-                                    <ArrowUpRight className="w-5 h-5" /> 1.2%
+                                    <ArrowUpRight className="w-5 h-5" /> Live
                                 </div>
                             </div>
 
@@ -103,27 +148,31 @@ export default function ReportsPage() {
                         </div>
 
                         <div className="space-y-8">
-                            {aiSummaries.map((summary, i) => (
-                                <motion.div 
-                                    key={i}
-                                    initial={{ x: 20, opacity: 0 }}
-                                    whileInView={{ x: 0, opacity: 1 }}
-                                    transition={{ delay: i * 0.1 }}
-                                    className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:shadow-2xl transition-all"
-                                >
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div className="flex items-center gap-4">
-                                            <span className={cn("px-3 py-1 text-[9px] font-black rounded-lg uppercase tracking-widest", summary.variant === 'danger' ? "bg-danger/10 text-danger" : "bg-primary/10 text-primary")}>
-                                                {summary.tag}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-slate-300 italic">{summary.time}</span>
+                                {reports.length > 0 ? reports.slice(0, 3).map((report, i) => (
+                                    <motion.div 
+                                        key={report.id}
+                                        initial={{ x: 20, opacity: 0 }}
+                                        whileInView={{ x: 0, opacity: 1 }}
+                                        transition={{ delay: i * 0.1 }}
+                                        className="bg-white p-8 rounded-[2rem] shadow-xl shadow-slate-200/40 relative overflow-hidden group hover:shadow-2xl transition-all"
+                                    >
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div className="flex items-center gap-4">
+                                                <span className={cn("px-3 py-1 text-[9px] font-black rounded-lg uppercase tracking-widest", report.generatedBy === 'System Auto-Gen' ? "bg-primary/10 text-primary" : "bg-orange-100 text-orange-600")}>
+                                                    {report.generatedBy}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-slate-300 italic">{new Date(report.createdAt).toLocaleTimeString()}</span>
+                                            </div>
                                         </div>
+                                        <h4 className="text-xl font-black text-secondary tracking-tight mb-3 italic">{report.title}</h4>
+                                        <p className="text-sm font-bold text-slate-500 leading-relaxed italic line-clamp-2">{report.content}</p>
+                                        <div className={cn("absolute left-0 top-0 bottom-0 w-1.5", report.generatedBy === 'System Auto-Gen' ? "bg-primary" : "bg-orange-500")} />
+                                    </motion.div>
+                                )) : (
+                                    <div className="p-10 text-center text-slate-300 font-black uppercase tracking-widest text-xs italic">
+                                        No recent intelligence available.
                                     </div>
-                                    <h4 className="text-xl font-black text-secondary tracking-tight mb-3 italic">{summary.title}</h4>
-                                    <p className="text-sm font-bold text-slate-500 leading-relaxed italic">{summary.description}</p>
-                                    <div className={cn("absolute left-0 top-0 bottom-0 w-1.5", summary.variant === 'danger' ? "bg-danger" : "bg-primary")} />
-                                </motion.div>
-                            ))}
+                                )}
                         </div>
                     </Card>
                 </div>
@@ -216,35 +265,55 @@ export default function ReportsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
-                                {reportHistory.map((report, i) => (
-                                    <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                                {reports.map((report) => (
+                                    <tr key={report.id} className="group hover:bg-slate-50/50 transition-colors">
                                         <td className="py-8">
                                             <div className="flex items-center gap-4">
-                                                <div className={cn("p-2.5 rounded-xl bg-slate-50 border border-slate-100 shadow-sm transition-colors group-hover:bg-white", report.color)}>
-                                                    <report.icon className="w-5 h-5" />
+                                                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 shadow-sm transition-colors group-hover:bg-white text-primary">
+                                                    <FileText className="w-5 h-5" />
                                                 </div>
-                                                <span className="text-sm font-black text-secondary italic tracking-tight">{report.type}</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-black text-secondary italic tracking-tight">{report.title}</span>
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{report.issueId || report.id}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="py-8">
-                                            <span className="text-xs font-bold text-slate-500 italic uppercase">{report.date}</span>
+                                            <span className="text-xs font-bold text-slate-500 italic uppercase">{new Date(report.createdAt).toLocaleString()}</span>
                                         </td>
                                         <td className="py-8">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden shadow-inner flex items-center justify-center">
-                                                    <Activity className="w-4 h-4 text-slate-400" />
+                                                <div className="w-8 h-8 rounded-full bg-[#007A8A]/10 overflow-hidden flex items-center justify-center">
+                                                    <ShieldCheck className="w-4 h-4 text-[#007A8A]" />
                                                 </div>
-                                                <span className="text-xs font-bold text-slate-500 italic">{report.generatedBy}</span>
+                                                <span className="text-xs font-bold text-slate-500 italic uppercase">{report.generatedBy}</span>
                                             </div>
                                         </td>
-                                        <td className="py-8 text-xs font-black text-slate-400 tracking-tight italic uppercase">{report.size}</td>
+                                        <td className="py-8 text-xs font-black text-slate-400 tracking-tight italic uppercase">FINALIZED</td>
                                         <td className="py-8 text-right">
-                                            <Button variant="ghost" size="icon" className="w-12 h-12 rounded-xl text-slate-400 hover:text-[#007A8A] hover:bg-[#007A8A]/5 transition-all">
-                                                <Download className="w-5 h-5" />
-                                            </Button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    onClick={() => handleDelete(report.id)}
+                                                    className="w-10 h-10 rounded-xl text-slate-300 hover:text-danger hover:bg-danger/5 transition-all"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="w-10 h-10 rounded-xl text-slate-400 hover:text-[#007A8A] hover:bg-[#007A8A]/5 transition-all">
+                                                    <Download className="w-5 h-5" />
+                                                </Button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
+                                {reports.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="py-20 text-center text-slate-300 font-black uppercase tracking-widest text-xs italic">
+                                            No archived reports found in historical logs.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

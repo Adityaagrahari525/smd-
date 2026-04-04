@@ -30,32 +30,40 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
-const leakageData = [
-    { name: "1", active: 40, repaired: 24 },
-    { name: "2", active: 30, repaired: 13 },
-    { name: "3", active: 20, repaired: 98 },
-    { name: "4", active: 27, repaired: 39 },
-    { name: "5", active: 18, repaired: 48 },
-    { name: "6", active: 23, repaired: 38 },
-    { name: "7", active: 34, repaired: 43 },
-    { name: "8", active: 45, repaired: 20 },
-    { name: "9", active: 55, repaired: 30 },
-    { name: "10", active: 48, repaired: 25 },
-    { name: "11", active: 38, repaired: 15 },
-    { name: "12", active: 28, repaired: 10 },
-    { name: "13", active: 18, repaired: 5 },
-    { name: "14", active: 15, repaired: 5 },
-];
-
-const sectorDistribution = [
-    { sector: "Sector 12", issues: 42, color: "bg-[#E11D48]", width: "85%" },
-    { sector: "Sector 19", issues: 28, color: "bg-[#007A8A]", width: "65%" },
-    { sector: "Sector 04", issues: 15, color: "bg-[#2563EB]", width: "45%" },
-    { sector: "Sector 31", issues: 9, color: "bg-[#22D3EE]", width: "30%" },
-];
+import { useIssues } from "@/hooks/useIssues";
 
 export default function AnalyticsPage() {
+    const { issues } = useIssues();
+
+    // Derive Statistics
+    const totalIssues = issues.length;
+    const resolvedIssues = issues.filter(i => i.status === "Resolved").length;
+    const activeIssues = totalIssues - resolvedIssues;
+    
+    // Group by Sector (Location)
+    const sectorMap = issues.reduce((acc: any, issue) => {
+        const sector = issue.location || "Unknown";
+        acc[sector] = (acc[sector] || 0) + 1;
+        return acc;
+    }, {});
+
+    const COLORS = ["bg-[#E11D48]", "bg-[#007A8A]", "bg-[#2563EB]", "bg-[#22D3EE]", "bg-teal-500", "bg-orange-500"];
+    const sectorDistribution = Object.entries(sectorMap).map(([sector, count], i) => ({
+        sector,
+        issues: count as number,
+        color: COLORS[i % COLORS.length],
+        width: totalIssues > 0 ? `${((count as number) / totalIssues) * 100}%` : "0%"
+    })).sort((a, b) => b.issues - a.issues).slice(0, 4);
+
+    // Mock trend over last 7 days based on real counts
+    const leakageData = Array.from({ length: 7 }).map((_, i) => ({
+        name: `${i + 1}`,
+        active: Math.max(1, Math.round(activeIssues * (0.8 + Math.random() * 0.4))),
+        repaired: Math.max(1, Math.round(resolvedIssues * (0.8 + Math.random() * 0.4)))
+    }));
+
     return (
+
         <div className="space-y-10 pb-20">
             <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>

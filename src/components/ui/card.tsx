@@ -9,16 +9,15 @@ const Card = React.forwardRef<
     <motion.div
         ref={ref}
         whileHover={noHover ? {} : { 
-            y: -5, 
-            boxShadow: "0 30px 60px -12px rgba(0, 122, 138, 0.15)",
-            borderColor: "#007A8A"
+            scale: 1.03, 
+            boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
         }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        transition={{ duration: 0.2, ease: "easeInOut" }}
         className={cn(
             "rounded-[2rem] border border-slate-200/60 bg-surface text-foreground shadow-sm transition-colors overflow-hidden",
             className
         )}
-        {...props}
+        {...(props as any)}
     />
 ))
 Card.displayName = "Card"

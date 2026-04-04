@@ -16,6 +16,7 @@ import {
     AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const menuItems = [
     { name: "Overview", href: "/overview", icon: LayoutGrid },
@@ -31,6 +32,7 @@ const bottomItems = [
 
 export function CitizenSidebar() {
     const pathname = usePathname();
+    const { signOut } = useAuth();
 
     return (
         <aside className="w-64 border-r border-slate-100 bg-white h-screen fixed left-0 top-0 flex flex-col z-40">
@@ -99,7 +101,10 @@ export function CitizenSidebar() {
                         </Link>
                     );
                 })}
-                <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                <button 
+                    onClick={() => signOut()}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer"
+                >
                     <LogOut className="w-4 h-4" />
                     Sign Out
                 </button>

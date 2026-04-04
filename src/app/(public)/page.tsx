@@ -21,6 +21,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
 
 const stats = [
   { label: "Active Grid Nodes", value: "12.4M", icon: Activity },
@@ -53,6 +55,27 @@ const operations = [
 ];
 
 export default function LandingPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleReportClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user) {
+      router.push("/report");
+    } else {
+      router.push("/login?redirect=/report");
+    }
+  };
+
+  const handleDashboardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user) {
+      router.push(user.role === "admin" ? "/dashboard" : "/overview");
+    } else {
+      router.push("/login");
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-white selection:bg-primary/20">
       {/* HERO SECTION */}
@@ -73,26 +96,29 @@ export default function LandingPage() {
             transition={{ duration: 0.8 }}
             className="max-w-3xl"
           >
-            <h1 className="text-6xl md:text-8xl font-serif font-bold text-white leading-tight mb-8">
+            <h1 className="text-5xl sm:text-6xl md:text-8xl font-serif font-bold text-white leading-tight mb-8 px-4 sm:px-0">
               Authority in <br />
               <span className="text-primary italic font-light">Water Security</span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 font-medium leading-relaxed mb-12 max-w-2xl">
+            <p className="text-base sm:text-xl md:text-2xl text-white/90 font-medium leading-relaxed mb-12 max-w-2xl px-4 sm:px-0">
               Predictive infrastructure management for resilient water systems. 
               JalSuraksha ensures sustainable water cycles through real-time predictive monitoring.
             </p>
             
-            <div className="flex flex-wrap gap-6">
-              <Link href="/login">
-                <Button className="h-16 px-10 bg-primary hover:bg-primary-dark text-white rounded-lg font-bold uppercase tracking-widest text-sm shadow-xl transition-all hover:scale-105 active:scale-95">
-                  Submit Report
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button variant="outline" className="h-16 px-10 border-white/30 text-white hover:bg-white/10 rounded-lg font-bold uppercase tracking-widest text-sm backdrop-blur-md transition-all">
-                  Dashboard
-                </Button>
-              </Link>
+            <div className="flex flex-wrap gap-4 px-4 sm:px-0">
+              <Button 
+                onClick={handleReportClick}
+                className="w-full sm:w-auto sm:h-16 h-14 px-10 bg-primary hover:bg-primary-dark text-white rounded-lg font-bold uppercase tracking-widest text-sm shadow-xl transition-all hover:scale-105 active:scale-95"
+              >
+                Submit Report
+              </Button>
+              <Button 
+                onClick={handleDashboardClick}
+                variant="outline" 
+                className="w-full sm:w-auto sm:h-16 h-14 px-10 border-white/30 text-white hover:bg-white/10 rounded-lg font-bold uppercase tracking-widest text-sm backdrop-blur-md transition-all"
+              >
+                Dashboard
+              </Button>
             </div>
           </motion.div>
         </div>
@@ -224,34 +250,37 @@ export default function LandingPage() {
       </section>
 
       {/* CTA SECTION */}
-      <section className="py-32 bg-white">
-        <div className="max-w-7xl mx-auto px-8">
-          <Card className="rounded-[4rem] bg-[#0A192F] p-24 relative overflow-hidden border-none shadow-3xl text-center group">
+      <section className="py-20 md:py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-6 md:px-8">
+          <Card className="rounded-[2.5rem] md:rounded-[4rem] bg-[#0A192F] p-10 md:p-24 relative overflow-hidden border-none shadow-3xl text-center group">
             {/* Glowing backgrounds */}
             <div className="absolute inset-0 opacity-20 pointer-events-none">
               <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/30 blur-[150px] rounded-full translate-x-1/3 -translate-y-1/3" />
               <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/20 blur-[120px] rounded-full -translate-x-1/3 translate-y-1/3" />
             </div>
 
-            <div className="relative z-10 space-y-12">
-              <h2 className="text-6xl md:text-8xl font-serif font-bold text-white italic tracking-tighter leading-none">
+            <div className="relative z-10 space-y-8 md:space-y-12">
+              <h2 className="text-4xl md:text-6xl lg:text-8xl font-serif font-bold text-white italic tracking-tighter leading-none">
                 Ready to <span className="text-primary">Modernize?</span>
               </h2>
-              <p className="text-xl md:text-2xl text-white/60 font-medium italic max-w-3xl mx-auto">
+              <p className="text-lg md:text-2xl text-white/60 font-medium italic max-w-3xl mx-auto">
                 Join forward-thinking cities using JalSuraksha to protect their most vital resource.
               </p>
               
               <div className="flex flex-wrap justify-center gap-8 pt-4">
-                <Link href="/login">
-                  <Button className="h-16 px-12 bg-primary hover:bg-primary-dark text-white rounded-lg font-bold uppercase tracking-widest text-sm shadow-xl transition-all hover:scale-105 active:scale-95">
-                    Request Demo
-                  </Button>
-                </Link>
-                <Link href="/login">
-                  <Button variant="outline" className="h-16 px-12 border-white/20 text-white hover:bg-white/10 rounded-lg font-bold uppercase tracking-widest text-sm backdrop-blur-md transition-all">
-                    Speak with an Expert
-                  </Button>
-                </Link>
+                <Button 
+                  onClick={handleReportClick}
+                  className="h-16 px-12 bg-primary hover:bg-primary-dark text-white rounded-lg font-bold uppercase tracking-widest text-sm shadow-xl transition-all hover:scale-105 active:scale-95"
+                >
+                  Request Demo
+                </Button>
+                <Button 
+                  onClick={handleReportClick}
+                  variant="outline" 
+                  className="h-16 px-12 border-white/20 text-white hover:bg-white/10 rounded-lg font-bold uppercase tracking-widest text-sm backdrop-blur-md transition-all"
+                >
+                  Speak with an Expert
+                </Button>
               </div>
             </div>
           </Card>

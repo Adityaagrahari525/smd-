@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 
 export interface AuthUser {
   id: string;
@@ -22,103 +22,161 @@ export function useAuth() {
     error: null,
   });
 
-  // Listen to Supabase auth state changes
+  // 1. INITIALIZATION & SESSION SYNC
   React.useEffect(() => {
     let mounted = true;
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted && session?.user) {
-        setState({
-          user: {
-            id: session.user.id,
-            email: session.user.email ?? "",
-            role: (session.user.user_metadata?.role as "citizen" | "admin") ?? "citizen",
-          },
-          loading: false,
-          error: null,
-        });
-      } else if (mounted) {
-        setState({ user: null, loading: false, error: null });
-      }
-    });
+    if (isSupabaseConfigured) {
+      // REAL MODE: Use Supabase
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (mounted && session?.user) {
+          setState({
+            user: {
+              id: session.user.id,
+              email: session.user.email ?? "",
+              role: (session.user.user_metadata?.role as "citizen" | "admin") ?? "citizen",
+            },
+            loading: false,
+            error: null,
+          });
+        } else if (mounted) {
+          setState({ user: null, loading: false, error: null });
+        }
+      });
 
-    // Subscribe to auth changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      if (session?.user) {
-        setState({
-          user: {
-            id: session.user.id,
-            email: session.user.email ?? "",
-            role: (session.user.user_metadata?.role as "citizen" | "admin") ?? "citizen",
-          },
-          loading: false,
-          error: null,
-        });
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (!mounted) return;
+        if (session?.user) {
+          setState({
+            user: {
+              id: session.user.id,
+              email: session.user.email ?? "",
+              role: (session.user.user_metadata?.role as "citizen" | "admin") ?? "citizen",
+            },
+            loading: false,
+            error: null,
+          });
+        } else {
+          setState({ user: null, loading: false, error: null });
+        }
+      });
+
+      return () => {
+        mounted = false;
+        listener.subscription.unsubscribe();
+      };
+    } else {
+      // MOCK MODE: Use localStorage fallback
+      const mockSession = localStorage.getItem("jalsuraksha_mock_user");
+      if (mockSession) {
+        try {
+          setState({
+            user: JSON.parse(mockSession),
+            loading: false,
+            error: null,
+          });
+        } catch {
+          localStorage.removeItem("jalsuraksha_mock_user");
+          setState({ user: null, loading: false, error: null });
+        }
       } else {
         setState({ user: null, loading: false, error: null });
       }
-    });
-
-    return () => {
-      mounted = false;
-      listener.subscription.unsubscribe();
-    };
+      return () => { mounted = false; };
+    }
   }, []);
 
   // ── Actions ──────────────────────────────────────────────────────────────────
 
-  const signIn = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (email: string, _password: string): Promise<boolean> => {
     setState((s) => ({ ...s, loading: true, error: null }));
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      console.log("[Auth] signIn success:", email);
-      return true;
-    } catch (err: any) {
-      console.error("[Auth] signIn failed:", err.message);
-      setState((s) => ({ ...s, loading: false, error: err.message }));
-      return false;
+    
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password: _password });
+        if (error) throw error;
+        return true;
+      } catch (err: any) {
+        setState((s) => ({ ...s, loading: false, error: err.message }));
+        return false;
+      }
+    } else {
+      // MOCK MODE: Always succeed, determine role based on email or fixed rule
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const role = email.toLowerCase().includes("admin") ? "admin" : "citizen";
+          const mockUser: AuthUser = {
+            id: "mock-uid-" + Date.now(),
+            email: email,
+            role: role,
+          };
+          
+          localStorage.setItem("jalsuraksha_mock_user", JSON.stringify(mockUser));
+          setState({ user: mockUser, loading: false, error: null });
+          console.log("[Auth] Signed in as MOCK USER:", mockUser);
+          resolve(true);
+        }, 800);
+      });
     }
   };
 
   const signUp = async (
     email: string,
-    password: string,
+    _password: string,
     role: "citizen" | "admin" = "citizen"
   ): Promise<boolean> => {
     setState((s) => ({ ...s, loading: true, error: null }));
-    try {
-      const { error } = await supabase.auth.signUp({
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password: _password,
+          options: { data: { role } },
+        });
+        if (error) throw error;
+        return true;
+      } catch (err: any) {
+        setState((s) => ({ ...s, loading: false, error: err.message }));
+        return false;
+      }
+    } else {
+      // MOCK MODE: Always succeed
+      const mockUser: AuthUser = {
+        id: "mock-uid-" + Date.now(),
         email,
-        password,
-        options: { data: { role } },
-      });
-      if (error) throw error;
-      console.log("[Auth] signUp success:", email, "role:", role);
+        role,
+      };
+      localStorage.setItem("jalsuraksha_mock_user", JSON.stringify(mockUser));
+      setState({ user: mockUser, loading: false, error: null });
       return true;
-    } catch (err: any) {
-      console.error("[Auth] signUp failed:", err.message);
-      setState((s) => ({ ...s, loading: false, error: err.message }));
-      return false;
     }
   };
 
   const signOut = async (): Promise<void> => {
-    try {
-      await supabase.auth.signOut();
-      console.log("[Auth] signed out");
-    } catch (err: any) {
-      console.error("[Auth] signOut failed:", err.message);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signOut();
+      } catch (err: any) {
+        console.error("[Auth] signOut failed:", err.message);
+      }
+    } else {
+      localStorage.removeItem("jalsuraksha_mock_user");
+      setState({ user: null, loading: false, error: null });
+      console.log("[Auth] Signed out MOCK USER");
     }
   };
 
   const signInWithGoogle = async (): Promise<void> => {
-    try {
-      await supabase.auth.signInWithOAuth({ provider: "google" });
-    } catch (err: any) {
-      console.error("[Auth] Google signIn failed:", err.message);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signInWithOAuth({ provider: "google" });
+      } catch (err: any) {
+        console.error("[Auth] Google signIn failed:", err.message);
+      }
+    } else {
+      alert("Mock Mode: Google Sign-in initialized (mocking success)");
+      signIn("demo@example.com", "password");
     }
   };
 

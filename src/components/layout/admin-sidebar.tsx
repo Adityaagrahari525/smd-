@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const adminMenuItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -32,6 +33,7 @@ const adminMenuItems = [
 
 export function AdminSidebar() {
     const pathname = usePathname();
+    const { signOut } = useAuth();
 
     return (
         <aside className="w-64 border-r border-slate-100 bg-white h-screen sticky top-0 flex flex-col p-4 shadow-sm z-30">
@@ -82,7 +84,10 @@ export function AdminSidebar() {
                     <HelpCircle className="w-5 h-5" />
                     Support
                 </Link>
-                <button className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-500 hover:text-danger transition-colors w-full">
+                <button 
+                    onClick={() => signOut()}
+                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-500 hover:text-red-500 hover:bg-red-50 transition-all w-full rounded-xl cursor-pointer"
+                >
                     <LogOut className="w-5 h-5" />
                     Logout
                 </button>

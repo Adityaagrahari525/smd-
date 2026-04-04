@@ -4,8 +4,10 @@ import * as React from "react";
 import Link from "next/link";
 import { Search, Bell, HelpCircle, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
 
 export function CitizenTopbar() {
+    const { user } = useAuth();
     return (
         <header className="h-16 px-8 flex items-center justify-between bg-white border-b border-slate-100 z-30 ml-64 sticky top-0">
             {/* Left: Brand text matching image 1 style */}
@@ -32,10 +34,20 @@ export function CitizenTopbar() {
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
                 </button>
 
-                {/* Avatar */}
-                <button className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shadow-md shadow-secondary/20 hover:bg-secondary/90 transition-colors overflow-hidden">
-                    <User className="w-5 h-5 text-white" />
-                </button>
+                {/* Avatar & Info */}
+                <div className="flex items-center gap-3 pl-3 border-l border-slate-100">
+                    <div className="text-right hidden sm:block">
+                        <div className="text-xs font-black text-secondary leading-tight line-clamp-1">{user?.email.split('@')[0] || "Citizen"}</div>
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Active Session</div>
+                    </div>
+                    <button className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shadow-md shadow-secondary/20 hover:bg-secondary/90 transition-colors overflow-hidden border border-secondary/20">
+                        {user?.email ? (
+                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="User" />
+                        ) : (
+                            <User className="w-5 h-5 text-white" />
+                        )}
+                    </button>
+                </div>
             </div>
         </header>
     );

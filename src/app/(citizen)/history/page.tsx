@@ -15,6 +15,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useIssues } from "@/hooks/useIssues";
+import { Trash2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+
+// Types from our issue model
+type ReportStatus = "Pending" | "In Progress" | "Resolved";
 
 const activeReports = [
     {
@@ -61,6 +67,29 @@ const activeReports = [
 
 export default function HistoryPage() {
     const [activeTab, setActiveTab] = React.useState<"all" | "active" | "resolved">("active");
+    const { user } = useAuth();
+    
+    // Connect to dynamic data with user-specific filter
+    const { issues, removeIssue, loading } = useIssues({
+        userId: user?.id
+    });
+
+    // Filter issues based on tab
+    const filteredIssues = issues.filter(issue => {
+        if (activeTab === "active") return issue.status !== "Resolved";
+        if (activeTab === "resolved") return issue.status === "Resolved";
+        return true;
+    });
+
+    const handleDelete = async (id: string) => {
+        if (confirm("Delete this report from your history?")) {
+            await removeIssue(id);
+        }
+    };
+
+    // To fix the "Object is possibly undefined" in the detailed analysis section, 
+    // we take the first filtered issue or null
+    const latestIssue = filteredIssues.length > 0 ? filteredIssues[0] : null;
 
     return (
         <div className="pb-12">
@@ -94,9 +123,9 @@ export default function HistoryPage() {
 
             {/* Main Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {activeReports.map((report, i) => (
+                {filteredIssues.map((issue, i) => (
                     <motion.div
-                        key={report.id}
+                        key={issue.id}
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.1 }}
@@ -107,21 +136,27 @@ export default function HistoryPage() {
                                 <div className="flex items-start justify-between mb-1">
                                     <div>
                                         <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">
-                                            ISSUE {report.id}
+                                            ISSUE {issue.id}
                                         </div>
-                                        <h3 className="text-xl font-black text-secondary">{report.title}</h3>
-                                        <p className="text-xs text-slate-400 mt-0.5">{report.date}</p>
+                                        <h3 className="text-xl font-black text-secondary">{issue.title}</h3>
+                                        <p className="text-xs text-slate-400 mt-0.5">{new Date(issue.createdAt).toLocaleString()}</p>
                                     </div>
                                     <div className="text-right shrink-0">
                                         <div className="flex items-center gap-1.5 justify-end mb-2">
-                                            <span className={cn("w-2 h-2 rounded-full", report.statusDot)} />
-                                            <span className={cn("text-[10px] font-black uppercase tracking-widest", report.statusColor)}>
-                                                {report.status}
+                                            <span className={cn("w-2 h-2 rounded-full", 
+                                                issue.status === "Pending" ? "bg-amber-500" :
+                                                issue.status === "In Progress" ? "bg-blue-500" : "bg-green-500"
+                                            )} />
+                                            <span className={cn("text-[10px] font-black uppercase tracking-widest", 
+                                                issue.status === "Pending" ? "text-amber-500" :
+                                                issue.status === "In Progress" ? "text-blue-500" : "text-green-500"
+                                            )}>
+                                                {issue.status}
                                             </span>
                                         </div>
-                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{report.etaLabel}</div>
-                                        <div className={cn("text-2xl font-black leading-tight", report.etaColor)}>
-                                            {report.eta}
+                                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">EST. RESPONSE</div>
+                                        <div className={cn("text-2xl font-black leading-tight text-primary")}>
+                                            {issue.estimatedTime || "PENDING"}
                                         </div>
                                     </div>
                                 </div>
@@ -129,43 +164,40 @@ export default function HistoryPage() {
 
                             {/* Report Preview Row */}
                             <div className="flex items-start gap-4 px-5 pb-4">
-                                <div className="w-24 h-20 rounded-xl overflow-hidden shrink-0 border border-slate-100">
-                                    <img
-                                        src={report.image}
-                                        alt="Evidence"
-                                        className="w-full h-full object-cover"
-                                    />
+                                <div className="w-24 h-20 rounded-xl overflow-hidden shrink-0 border border-slate-100 bg-slate-50 flex items-center justify-center">
+                                    <Droplets className="w-8 h-8 text-slate-200" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-xs text-slate-500 italic leading-relaxed mb-2 line-clamp-2">
-                                        {report.description}
+                                        {issue.description}
                                     </p>
                                     <div className="flex items-center gap-1.5 text-primary">
                                         <MapPin className="w-3.5 h-3.5 shrink-0" />
                                         <span className="text-xs font-semibold text-primary underline decoration-dotted underline-offset-2 line-clamp-1">
-                                            {report.location}
+                                            {issue.location}
                                         </span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Map footer */}
-                            <div className="relative h-20 bg-gradient-to-b from-slate-200 to-slate-300 overflow-hidden">
-                                <div className="absolute inset-0 opacity-20 bg-[linear-gradient(rgba(0,80,140,0.4)_1px,transparent_1px),linear-gradient(90deg,rgba(0,80,140,0.4)_1px,transparent_1px)] bg-[size:20px_20px]" />
-                                <div className="absolute inset-0 bg-gradient-to-r from-slate-300/80 via-slate-200/40 to-transparent" />
-
-                                {/* Floating map pin */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                    <MapPin className="w-6 h-6 text-primary" fill="currentColor" />
-                                </div>
-
-                                {/* Bottom badges */}
-                                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-4 py-3">
-                                    <span className={cn("text-[9px] font-black text-white px-2 py-1 rounded-md uppercase tracking-widest", report.mapBadgeColor)}>
-                                        {report.mapBadge}
-                                    </span>
-                                    <Button className="h-8 px-4 text-xs font-bold bg-secondary hover:bg-secondary/90 text-white rounded-lg shadow-md">
-                                        View Full Report
+                            {/* footer action */}
+                            <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                                <span className={cn("text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-widest", 
+                                    issue.isApproved ? "bg-success/20 text-success" : "bg-primary/20 text-primary"
+                                )}>
+                                    {issue.isApproved ? "VERIFIED BY AUTHORITY" : "UNDER REVIEW"}
+                                </span>
+                                <div className="flex gap-2">
+                                    <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => handleDelete(issue.id)}
+                                        className="h-8 px-3 text-[10px] font-black text-red-500 hover:bg-red-50 border-red-100"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Remove
+                                    </Button>
+                                    <Button className="h-8 px-4 text-[10px] font-bold bg-secondary hover:bg-secondary/90 text-white rounded-lg shadow-md">
+                                        View Details
                                     </Button>
                                 </div>
                             </div>
@@ -179,45 +211,26 @@ export default function HistoryPage() {
                 {/* Detailed Analysis */}
                 <Card className="border border-slate-200 rounded-2xl p-6 bg-white shadow-sm">
                     <div className="flex items-center justify-between mb-5">
-                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">DETAILED ANALYSIS: #JS-1092</h3>
-                        <span className="text-xs font-black px-3 py-1.5 rounded-lg bg-red-500 text-white">CRITICAL (8.9/10)</span>
+                        <h3 className="text-sm font-black text-secondary uppercase tracking-wider">DETAILED ANALYSIS: {latestIssue?.id || "N/A"}</h3>
+                        <span className={cn("text-xs font-black px-3 py-1.5 rounded-lg", 
+                            latestIssue?.severity === "CRITICAL" ? "bg-red-500 text-white" : "bg-primary text-white"
+                        )}>{latestIssue?.severity || "MEDIUM"}</span>
                     </div>
 
                     <div className="flex items-start gap-4 text-sm font-semibold mb-2">
-                        <div className="text-slate-400 text-[9px] font-black uppercase tracking-widest whitespace-nowrap">AI Severity Score</div>
+                        <div className="text-slate-400 text-[9px] font-black uppercase tracking-widest whitespace-nowrap">Status Timeline</div>
                     </div>
 
-                    <div className="space-y-0">
-                        {activeReports[0].tracking.map((step, i) => (
-                            <div key={i} className="flex items-start gap-4 relative">
-                                {/* Timeline line */}
-                                {i < activeReports[0].tracking.length - 1 && (
-                                    <div className={cn(
-                                        "absolute left-4 top-8 bottom-0 w-0.5 -mb-2",
-                                        step.done ? "bg-primary/20" : "bg-slate-100"
-                                    )} />
-                                )}
-
-                                <div className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-2 border-2 z-10",
-                                    step.done
-                                        ? "bg-primary border-primary text-white"
-                                        : "bg-white border-slate-200 text-slate-300"
-                                )}>
-                                    <CheckCircle2 className="w-4 h-4" />
-                                </div>
-                                <div className="pb-5 flex-1">
-                                    <div className={cn(
-                                        "text-sm font-bold",
-                                        step.done ? "text-secondary" : "text-slate-300"
-                                    )}>
-                                        {step.label}
-                                    </div>
-                                    <div className="text-xs text-slate-400">{step.time}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    {!latestIssue ? (
+                        <div className="py-10 text-center text-xs text-slate-400 italic">Select an issue to view timeline</div>
+                    ) : (
+                        <div className="space-y-0">
+                            {/* Mocking the timeline based on persistent data status */}
+                            <TimelineStep label="Report Received" time={new Date(latestIssue.createdAt).toLocaleString()} done={true} />
+                            <TimelineStep label="Verified by Authority" time="Automated Check Done" done={latestIssue.isApproved} />
+                            <TimelineStep label="Team Assignment" time={latestIssue.assignedTeam || "Pending Dispatch"} done={!!latestIssue.assignedTeam} isLast />
+                        </div>
+                    )}
                 </Card>
 
                 {/* Right Sidebar */}
@@ -254,6 +267,35 @@ export default function HistoryPage() {
             <button className="fixed bottom-8 right-8 w-14 h-14 bg-secondary text-white rounded-full shadow-2xl shadow-secondary/30 flex items-center justify-center hover:scale-110 transition-all active:scale-95 z-50">
                 <Plus className="w-6 h-6" />
             </button>
+        </div>
+    );
+}
+function TimelineStep({ label, time, done, isLast = false }: { label: string, time: string, done: boolean, isLast?: boolean }) {
+    return (
+        <div className="flex items-start gap-4 relative">
+            {!isLast && (
+                <div className={cn(
+                    "absolute left-4 top-8 bottom-0 w-0.5 -mb-2",
+                    done ? "bg-primary/20" : "bg-slate-100"
+                )} />
+            )}
+            <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-2 border-2 z-10",
+                done
+                    ? "bg-primary border-primary text-white"
+                    : "bg-white border-slate-200 text-slate-300"
+            )}>
+                <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div className="pb-5 flex-1">
+                <div className={cn(
+                    "text-sm font-bold",
+                    done ? "text-secondary" : "text-slate-400 opacity-50"
+                )}>
+                    {label}
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono italic uppercase">{time}</div>
+            </div>
         </div>
     );
 }

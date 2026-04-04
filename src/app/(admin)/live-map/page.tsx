@@ -19,35 +19,27 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 
-interface CivicIssue {
-    name: string;
-    description: string;
-    lat: number;
-    lng: number;
-    time: string;
-}
+import { useIssues } from "@/hooks/useIssues";
 
 export default function LiveMapPage() {
+    const { issues, refetch } = useIssues();
     const mapRef = React.useRef<HTMLDivElement>(null);
     const mapInstanceRef = React.useRef<any>(null);
     const issueLayerRef = React.useRef<any>(null);
 
-    const loadIssues = React.useCallback(() => {
-        if (!mapInstanceRef.current) return;
+    const loadIssuesMarkers = React.useCallback(() => {
+        if (!mapInstanceRef.current || !issueLayerRef.current) return;
         const L = (window as any).L;
         if (!L) return;
 
-        if (issueLayerRef.current) {
-            issueLayerRef.current.clearLayers();
-        }
-
-        const rawIssues = localStorage.getItem("civicIssues");
-        const issues: CivicIssue[] = rawIssues ? JSON.parse(rawIssues) : [];
+        issueLayerRef.current.clearLayers();
 
         issues.forEach((issue) => {
-            const redIcon = L.divIcon({
+            const statusColor = issue.status === "Resolved" ? "#22c55e" : issue.severity === "CRITICAL" ? "#ef4444" : "#f59e0b";
+            
+            const icon = L.divIcon({
                 html: `<div style="
-                    background:#ef4444;
+                    background:${statusColor};
                     width:28px;height:28px;border-radius:50% 50% 50% 0;
                     transform:rotate(-45deg);border:3px solid #fff;
                     box-shadow:0 2px 8px rgba(0,0,0,0.35);
@@ -57,24 +49,54 @@ export default function LiveMapPage() {
                 className: "",
             });
 
-            const formattedTime = new Date(issue.time).toLocaleString();
-            const marker = L.marker([issue.lat, issue.lng], { icon: redIcon });
-            marker.bindPopup(`
-                <div style="font-family:system-ui,sans-serif;min-width:180px;">
-                    <div style="font-weight:700;font-size:13px;color:#0f172a;margin-bottom:6px;">
-                        🚨 ${issue.name}
+            const marker = L.marker([issue.lat || 19.076, issue.lng || 72.8777], { icon });
+            
+            const popupContent = `
+                <div style="font-family:system-ui,sans-serif;min-width:200px;padding:4px;">
+                    <div style="display:flex;justify-content:between;align-items:center;margin-bottom:8px;">
+                        <span style="font-weight:900;font-size:12px;color:#0f172a;text-transform:uppercase;letter-spacing:0.05em;">
+                            ${issue.id}
+                        </span>
+                        <span style="margin-left:auto;font-size:10px;font-weight:800;color:${statusColor};text-transform:uppercase;">
+                            ${issue.status}
+                        </span>
                     </div>
-                    <div style="font-size:12px;color:#475569;margin-bottom:6px;line-height:1.5;">
+                    <div style="font-weight:800;font-size:14px;color:#0f172a;margin-bottom:4px;line-height:1.2;">
+                        ${issue.title}
+                    </div>
+                    <div style="font-size:12px;color:#64748b;margin-bottom:12px;line-height:1.4;">
                         ${issue.description}
                     </div>
-                    <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em;">
-                        ${formattedTime}
+                    <div style="background:#f8fafc;padding:8px;border-radius:8px;border:1px solid #f1f5f9;">
+                        <div style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:2px;">Location Provided</div>
+                        <div style="font-size:11px;font-weight:700;color:#334155;">
+                            ${issue.location}
+                        </div>
                     </div>
                 </div>
-            `);
+            `;
+
+            marker.bindPopup(popupContent, {
+                closeButton: false,
+                offset: [0, -20]
+            });
+
+            // Show popup on hover
+            marker.on('mouseover', function (e: any) {
+                e.target.openPopup();
+            });
+            marker.on('mouseout', function (e: any) {
+                e.target.closePopup();
+            });
+
             issueLayerRef.current.addLayer(marker);
         });
-    }, []);
+    }, [issues]);
+
+    // Update markers whenever issues change
+    React.useEffect(() => {
+        loadIssuesMarkers();
+    }, [loadIssuesMarkers]);
 
     React.useEffect(() => {
         if (!document.getElementById("leaflet-css")) {
@@ -92,7 +114,7 @@ export default function LiveMapPage() {
             const map = L.map(mapRef.current, {
                 center: [19.076, 72.8777],
                 zoom: 13,
-                zoomControl: false, // we add our own
+                zoomControl: false,
             });
             mapInstanceRef.current = map;
 
@@ -101,10 +123,8 @@ export default function LiveMapPage() {
                 maxZoom: 19,
             }).addTo(map);
 
-            // Custom zoom control — bottom right
             L.control.zoom({ position: "bottomright" }).addTo(map);
 
-            // 🏛️ Admin fixed marker
             const adminIcon = L.divIcon({
                 html: `<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.4))">🏛️</div>`,
                 iconSize: [32, 32],
@@ -121,7 +141,7 @@ export default function LiveMapPage() {
                 );
 
             issueLayerRef.current = L.layerGroup().addTo(map);
-            loadIssues();
+            loadIssuesMarkers();
         };
 
         if ((window as any).L) {
@@ -143,7 +163,8 @@ export default function LiveMapPage() {
                 mapInstanceRef.current = null;
             }
         };
-    }, [loadIssues]);
+    }, []); // Only once on mount
+
 
     return (
         <div className="flex flex-col gap-6 pb-10">
@@ -235,7 +256,7 @@ export default function LiveMapPage() {
             {/* ── ROW 3: Refresh button (right-aligned) ── */}
             <div className="flex justify-end">
                 <button
-                    onClick={loadIssues}
+                    onClick={loadIssuesMarkers}
                     className="flex items-center gap-2 py-2.5 px-5 bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-xl text-[10px] font-black text-primary uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95"
                 >
                     <RefreshCw className="w-3.5 h-3.5" />

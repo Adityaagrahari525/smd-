@@ -13,70 +13,35 @@ import {
     Users,
     Plus,
     Circle,
-    ArrowRight
+    ArrowRight,
+    Navigation,
+    MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-
-const feedPosts = [
-    {
-        id: 1,
-        sector: "SECTOR 14",
-        category: "INFRASTRUCTURE",
-        timeAgo: "2 hours ago",
-        badge: "Accelerated: +40% priority",
-        badgeColor: "bg-red-100 text-red-600",
-        title: "Mainline Leak in Sector 14",
-        description: "Significant water wastage observed near the main substation. The pressure is dropping across the residential block. Urgent...",
-        image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&q=80&w=300",
-        supports: 124,
-        comments: 18,
-        progress: 72,
-        progressColor: "bg-primary",
-    },
-    {
-        id: 2,
-        sector: "LAJPAT NAGAR",
-        category: "SUPPLY CHAIN",
-        timeAgo: "5 hours ago",
-        badge: "Trending Topic",
-        badgeColor: "bg-amber-100 text-amber-600",
-        title: "Supply Gap in Block C & D",
-        description: "Zero water pressure since 6 AM today. Multiple households reporting dry taps. Local water tank levels seem abnormally lo...",
-        image: "https://images.unsplash.com/photo-1504376379689-8d54347b26c6?auto=format&fit=crop&q=80&w=300",
-        supports: null,
-        supportLabel: "Support",
-        comments: 4,
-        moreSupports: "15 more supporters for acceleration",
-        progress: 45,
-        progressColor: "bg-amber-400",
-    },
-    {
-        id: 3,
-        sector: "GREEN PARK",
-        category: "QUALITY CONTROL",
-        timeAgo: "1 day ago",
-        badge: "Investigation Phase",
-        badgeColor: "bg-blue-100 text-blue-600",
-        title: "Cloudy Water Discharge",
-        description: "Residents in Phase 2 reporting turbid water appearance for the last 24 hours. No odor detected, but clarity is compromised...",
-        image: "https://images.unsplash.com/photo-1547700055-b61caced3fc3?auto=format&fit=crop&q=80&w=300",
-        supports: 89,
-        comments: 31,
-        progress: 30,
-        progressColor: "bg-blue-400",
-    },
-];
-
-const impactfulIssues = [
-    { rank: "01", title: "Sector 14 Mainline Leak", supports: 124, tag: "High Priority", tagColor: "text-red-500 bg-red-50" },
-    { rank: "02", title: "Green Park Turbidity", supports: 89, tag: "Investigating", tagColor: "text-blue-500 bg-blue-50" },
-    { rank: "03", title: "Rohini Pump Failure", supports: 72, tag: "Queued", tagColor: "text-slate-500 bg-slate-50" },
-];
+import { useIssues } from "@/hooks/useIssues";
+import { calculateDistance, formatDistance, MC_COORDINATES } from "@/lib/geo";
+import { getCleanUsername } from "@/services/mongoService";
 
 export default function CommunityPage() {
     const [view, setView] = React.useState<"list" | "map">("list");
+    const { issues, loading, addReaction } = useIssues({ isApproved: true });
+
+    // Filter out resolved issues for the community feed
+    const activeIssues = issues.filter(i => i.status !== "Resolved");
+
+    // Derive impactful issues from real data
+    const impactfulIssues = [...activeIssues]
+        .sort((a, b) => (b.reactions?.length || 0) - (a.reactions?.length || 0))
+        .slice(0, 3)
+        .map((issue, idx) => ({
+            rank: `0${idx + 1}`,
+            title: issue.title,
+            supports: issue.reactions?.length || 0,
+            tag: issue.severity,
+            tagColor: issue.severity === "CRITICAL" ? "text-red-500 bg-red-50" : "text-primary bg-primary/5"
+        }));
 
     return (
         <div className="pb-12">
@@ -118,7 +83,15 @@ export default function CommunityPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Feed */}
                 <div className="lg:col-span-2 space-y-5">
-                    {feedPosts.map((post, i) => (
+                    {activeIssues.length === 0 && !loading && (
+                        <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+                            <TrendingUp className="w-12 h-12 text-slate-200 mb-4" />
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs text-center">
+                                No active community issues right now.<br/>Everything seems to be flowing correctly.
+                            </p>
+                        </div>
+                    )}
+                    {activeIssues.map((post, i) => (
                         <motion.div
                             key={post.id}
                             initial={{ opacity: 0, y: 16 }}
@@ -127,54 +100,48 @@ export default function CommunityPage() {
                         >
                             <Card className="border border-slate-200 rounded-2xl bg-white shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                                 <div className="flex gap-5 p-5">
-                                    {/* Image */}
-                                    <div className="w-28 h-24 rounded-xl overflow-hidden shrink-0">
-                                        <img src={post.image} alt={post.title} className="w-full h-full object-cover" />
-                                    </div>
-
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap mb-2">
                                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                                {post.sector} • {post.category} • {post.timeAgo}
+                                                {post.location} • {new Date(post.createdAt).toLocaleDateString()}
                                             </span>
-                                            {post.badge && (
-                                                <span className={cn("text-[10px] font-black px-2 py-0.5 rounded-full", post.badgeColor)}>
-                                                    {post.badge}
-                                                </span>
-                                            )}
+                                            <span className={cn(
+                                                "text-[9px] font-black px-2 py-0.5 rounded-full",
+                                                post.severity === "CRITICAL" ? "bg-red-50 text-red-600" :
+                                                post.severity === "HIGH" ? "bg-amber-50 text-amber-600" :
+                                                "bg-blue-50 text-blue-600"
+                                            )}>
+                                                {post.severity}
+                                            </span>
                                         </div>
                                         <h3 className="text-base font-black text-secondary mb-1 leading-snug">{post.title}</h3>
                                         <p className="text-xs text-slate-400 leading-relaxed mb-3 line-clamp-2">{post.description}</p>
 
-                                        {/* Progress */}
-                                        <div className="h-1 bg-slate-100 rounded-full overflow-hidden mb-3">
-                                            <div
-                                                className={cn("h-full rounded-full", post.progressColor)}
-                                                style={{ width: `${post.progress}%` }}
-                                            />
-                                        </div>
-
                                         {/* Actions */}
                                         <div className="flex items-center gap-4">
-                                            <button className="flex items-center gap-1.5 text-slate-400 hover:text-primary transition-colors group">
-                                                <div className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-primary group-hover:bg-primary/5 transition-all">
+                                            <button 
+                                                onClick={() => addReaction(post.id, "current-user")}
+                                                className="flex items-center gap-1.5 text-primary hover:scale-105 transition-transform"
+                                            >
+                                                <div className="w-8 h-8 rounded-full border border-primary/20 bg-primary/5 flex items-center justify-center">
                                                     <ThumbsUp className="w-3.5 h-3.5" />
                                                 </div>
                                                 <span className="text-xs font-bold">
-                                                    {post.supports ? `${post.supports} Support` : post.supportLabel}
+                                                    {post.reactions?.length || 0} Support
                                                 </span>
                                             </button>
-                                            <button className="flex items-center gap-1.5 text-slate-400 hover:text-secondary transition-colors">
+                                            <div className="flex items-center gap-1.5 text-secondary">
                                                 <MessageCircle className="w-4 h-4" />
-                                                <span className="text-xs font-bold">{post.comments} Comments</span>
-                                            </button>
-                                            {post.moreSupports && (
-                                                <span className="text-[10px] text-primary font-bold ml-auto">{post.moreSupports}</span>
+                                                <span className="text-xs font-bold">{post.comments?.length || 0} Comments</span>
+                                            </div>
+
+                                            {post.lat && post.lng && (
+                                                <div className="ml-auto flex items-center gap-1.5 text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                                    <MapPin className="w-3 h-3" />
+                                                    {formatDistance(calculateDistance(post.lat, post.lng, MC_COORDINATES.lat, MC_COORDINATES.lng))} FROM MC
+                                                </div>
                                             )}
-                                            <button className="ml-auto text-slate-300 hover:text-slate-500 transition-colors">
-                                                <Share2 className="w-4 h-4" />
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
