@@ -22,7 +22,6 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useIssues } from "@/hooks/useIssues";
 import { calculateDistance, formatDistance, MC_COORDINATES } from "@/lib/geo";
-import { getCleanUsername } from "@/services/mongoService";
 
 export default function CommunityPage() {
     const [view, setView] = React.useState<"list" | "map">("list");

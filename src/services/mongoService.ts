@@ -1,12 +1,13 @@
-/**
- * mongoService.ts
- * Mock MongoDB service layer with localStorage persistence.
- */
+"use server";
+
+import clientPromise from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface WaterIssue {
   id: string;
-  userId: string; // NEW: Identification for "My Reports"
+  _id?: string; // MongoDB internal ID
+  userId: string;
   title: string;
   description: string;
   location: string;
@@ -17,20 +18,21 @@ export interface WaterIssue {
   isApproved: boolean; 
   assignedTeam?: string; 
   estimatedTime?: string; 
-  evidenceUrl?: string; // NEW: Store filename/reference
-  reactions: string[]; // NEW: Array of userIds who liked
+  evidenceUrl?: string; 
+  reactions: string[]; 
   comments: { 
     userId: string; 
     userName: string; 
     text: string; 
     createdAt: string; 
-  }[]; // NEW: Social interactions
+  }[]; 
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Report {
   id: string;
+  _id?: string;
   issueId?: string;
   title: string;
   content: string;
@@ -40,115 +42,70 @@ export interface Report {
 
 export interface User {
   id: string;
+  _id?: string;
   name: string;
   email: string;
   role: "citizen" | "admin";
   createdAt: string;
 }
 
-// ─── Seed data ────────────────────────────────────────────────────────────────
-const mockReports: Report[] = [
-    { 
-        id: "R-7721", 
-        title: "Sector 14 Pipeline Integrity Audit", 
-        content: "Detailed analysis of structural integrity following the major burst on Oct 28. Repair confirmed with 10-year lifespan expectation.", 
-        generatedBy: "Systems Auto-Gen", 
-        createdAt: new Date().toISOString() 
-    }
-];
+// ─── Database Helpers ────────────────────────────────────────────────────────
+const DB_NAME = "smartwater";
+const ISSUES_COLLECTION = "issues";
+const REPORTS_COLLECTION = "reports";
+const USERS_COLLECTION = "users";
 
-// ─── Persistence Helper ───────────────────────────────────────────────────────
-const STORAGE_KEY = "jalsuraksha_issue_store";
-const REPORT_STORAGE_KEY = "jalsuraksha_report_store";
-
-const loadStore = (): WaterIssue[] => {
-  if (typeof window === "undefined") return [];
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved) as WaterIssue[];
-      return parsed.map(issue => ({
-        ...issue,
-        reactions: issue.reactions || [],
-        comments: issue.comments || [],
-        userId: issue.userId || "legacy-user",
-        isApproved: typeof issue.isApproved === "boolean" ? issue.isApproved : true
-      }));
-    } catch {
-      return [];
-    }
-  }
-  return [];
-};
-
-const loadReports = (): Report[] => {
-  if (typeof window === "undefined") return [...mockReports];
-  const saved = localStorage.getItem(REPORT_STORAGE_KEY);
-  if (saved) {
-    try {
-      return JSON.parse(saved) as Report[];
-    } catch {
-      return [...mockReports];
-    }
-  }
-  return [...mockReports];
-};
-
-const saveStore = (issues: WaterIssue[]) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(issues));
-  }
-};
-
-const saveReports = (reports: Report[]) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(REPORT_STORAGE_KEY, JSON.stringify(reports));
-  }
-};
-
-// In-memory store initialized from localStorage or seed
-let issueStore: WaterIssue[] = loadStore();
-let reportStore: Report[] = loadReports();
-
-// ─── Utility ──────────────────────────────────────────────────────────────────
-const delay = (ms = 300) => new Promise((res) => setTimeout(res, ms));
-const genId = (prefix = "JS") => `${prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
+async function getCollection(name: string) {
+  const client = await clientPromise;
+  return client.db(DB_NAME).collection(name);
+}
 
 // ─── CRUD — Issues ────────────────────────────────────────────────────────────
 
-/** Fetch all issues */
+/** Fetch all issues with optional filtering */
 export async function getData(filters?: {
   status?: WaterIssue["status"];
   severity?: WaterIssue["severity"];
   isApproved?: boolean;
-  userId?: string; // NEW: Privacy filter
+  userId?: string;
 }): Promise<WaterIssue[]> {
   try {
-    await delay();
-    let results = [...issueStore];
-    if (filters?.status) results = results.filter((i) => i.status === filters.status);
-    if (filters?.severity) results = results.filter((i) => i.severity === filters.severity);
-    if (typeof filters?.isApproved === "boolean") {
-        results = results.filter((i) => i.isApproved === filters.isApproved);
-    }
-    if (filters?.userId) {
-        results = results.filter((i) => i.userId === filters.userId);
-    }
-    return results;
+    const collection = await getCollection(ISSUES_COLLECTION);
+    let query: any = {};
+    
+    if (filters?.status) query.status = filters.status;
+    if (filters?.severity) query.severity = filters.severity;
+    if (typeof filters?.isApproved === "boolean") query.isApproved = filters.isApproved;
+    if (filters?.userId) query.userId = filters.userId;
+
+    const results = await collection.find(query).sort({ createdAt: -1 }).toArray();
+    
+    return results.map(doc => ({
+      ...doc,
+      id: doc._id.toString(),
+      _id: undefined
+    })) as unknown as WaterIssue[];
   } catch (err) {
     console.error("[MongoDB] getData failed:", err);
-    throw err;
+    return [];
   }
 }
 
 /** Fetch a single issue by id */
 export async function getDataById(id: string): Promise<WaterIssue | null> {
   try {
-    await delay();
-    return issueStore.find((i) => i.id === id) ?? null;
+    const collection = await getCollection(ISSUES_COLLECTION);
+    const doc = await collection.findOne({ _id: new ObjectId(id) });
+    if (!doc) return null;
+    
+    return {
+      ...doc,
+      id: doc._id.toString(),
+      _id: undefined
+    } as unknown as WaterIssue;
   } catch (err) {
     console.error("[MongoDB] getDataById failed:", err);
-    throw err;
+    return null;
   }
 }
 
@@ -157,19 +114,24 @@ export async function createData(
   payload: Omit<WaterIssue, "id" | "createdAt" | "updatedAt" | "isApproved" | "reactions" | "comments">
 ): Promise<WaterIssue> {
   try {
-    await delay();
-    const newIssue: WaterIssue = {
+    const collection = await getCollection(ISSUES_COLLECTION);
+    const now = new Date().toISOString();
+    
+    const newDoc = {
       ...payload,
-      id: genId(),
       isApproved: false,
       reactions: [],
       comments: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
-    issueStore = [newIssue, ...issueStore];
-    saveStore(issueStore);
-    return newIssue;
+    
+    const result = await collection.insertOne(newDoc);
+    
+    return {
+      ...newDoc,
+      id: result.insertedId.toString()
+    } as unknown as WaterIssue;
   } catch (err) {
     console.error("[MongoDB] createData failed:", err);
     throw err;
@@ -182,17 +144,22 @@ export async function updateData(
   patch: Partial<Omit<WaterIssue, "id" | "createdAt">>
 ): Promise<WaterIssue | null> {
   try {
-    await delay();
-    const idx = issueStore.findIndex((i) => i.id === id);
-    if (idx === -1) return null;
+    const collection = await getCollection(ISSUES_COLLECTION);
+    const updatedAt = new Date().toISOString();
     
-    issueStore[idx] = {
-      ...issueStore[idx],
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    };
-    saveStore(issueStore);
-    return issueStore[idx];
+    const result = await collection.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: { ...patch, updatedAt } },
+      { returnDocument: "after" }
+    );
+    
+    if (!result) return null;
+    
+    return {
+      ...result,
+      id: result._id.toString(),
+      _id: undefined
+    } as unknown as WaterIssue;
   } catch (err) {
     console.error("[MongoDB] updateData failed:", err);
     throw err;
@@ -202,96 +169,131 @@ export async function updateData(
 /** Delete an issue by id */
 export async function deleteData(id: string): Promise<boolean> {
   try {
-    await delay();
-    const before = issueStore.length;
-    issueStore = issueStore.filter((i) => i.id !== id);
-    const deleted = issueStore.length < before;
-    if (deleted) saveStore(issueStore);
-    return deleted;
+    const collection = await getCollection(ISSUES_COLLECTION);
+    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    return result.deletedCount === 1;
   } catch (err) {
     console.error("[MongoDB] deleteData failed:", err);
-    throw err;
+    return false;
   }
 }
 
 // ─── CRUD — Reports ───────────────────────────────────────────────────────────
 
 export async function getReports(): Promise<Report[]> {
-  await delay();
-  return [...reportStore];
+  try {
+    const collection = await getCollection(REPORTS_COLLECTION);
+    const results = await collection.find({}).sort({ createdAt: -1 }).toArray();
+    
+    return results.map(doc => ({
+      ...doc,
+      id: doc._id.toString(),
+      _id: undefined
+    })) as unknown as Report[];
+  } catch (err) {
+    console.error("[MongoDB] getReports failed:", err);
+    return [];
+  }
 }
 
 export async function createReport(payload: Omit<Report, "id" | "createdAt">): Promise<Report> {
-  await delay();
-  const newReport: Report = {
-    ...payload,
-    id: genId("R"),
-    createdAt: new Date().toISOString(),
-  };
-  reportStore = [newReport, ...reportStore];
-  saveReports(reportStore);
-  return newReport;
+  try {
+    const collection = await getCollection(REPORTS_COLLECTION);
+    const now = new Date().toISOString();
+    
+    const newDoc = {
+      ...payload,
+      createdAt: now,
+    };
+    
+    const result = await collection.insertOne(newDoc);
+    
+    return {
+      ...newDoc,
+      id: result.insertedId.toString()
+    } as unknown as Report;
+  } catch (err) {
+    console.error("[MongoDB] createReport failed:", err);
+    throw err;
+  }
 }
 
 export async function deleteReport(id: string): Promise<boolean> {
-  await delay();
-  const before = reportStore.length;
-  reportStore = reportStore.filter(r => r.id !== id);
-  const ok = reportStore.length < before;
-  if (ok) saveReports(reportStore);
-  return ok;
+  try {
+    const collection = await getCollection(REPORTS_COLLECTION);
+    const result = await collection.deleteOne({ _id: new ObjectId(id) });
+    return result.deletedCount === 1;
+  } catch (err) {
+    console.error("[MongoDB] deleteReport failed:", err);
+    return false;
+  }
 }
 
 // ─── Social Actions ──────────────────────────────────────────────────────────
 
 export async function addReaction(id: string, userId: string): Promise<boolean> {
-    await delay(100);
-    const idx = issueStore.findIndex(i => i.id === id);
-    if (idx === -1) return false;
-    
-    const reactions = issueStore[idx].reactions || [];
-    if (reactions.includes(userId)) {
-        issueStore[idx].reactions = reactions.filter(u => u !== userId);
-    } else {
-        issueStore[idx].reactions = [...reactions, userId];
-    }
-    saveStore(issueStore);
-    return true;
-}
-
-export async function addComment(id: string, comment: { userId: string, userName: string, text: string }): Promise<boolean> {
-    await delay(100);
-    const idx = issueStore.findIndex(i => i.id === id);
-    if (idx === -1) return false;
-    
-    const newComment = {
-        ...comment,
-        createdAt: new Date().toISOString()
-    };
-    
-    issueStore[idx].comments = [...(issueStore[idx].comments || []), newComment];
-    saveStore(issueStore);
-    return true;
-}
-
-/** Helper to get clean username from email */
-export function getCleanUsername(email: string): string {
-    if (!email) return "Citizen";
-    return email.split('@')[0].replace(/[._]/g, ' ');
-}
-
-// ─── Users ────────────────────────────────────────────────────────────────────
-const mockUsers: User[] = [
-    { id: "u-001", name: "Admin Mehta", email: "admin@example.com", role: "admin", createdAt: "2024-01-10T00:00:00Z" }
-];
-
-export async function getUsers(): Promise<User[]> {
   try {
-    await delay();
-    return [...mockUsers];
+    const collection = await getCollection(ISSUES_COLLECTION);
+    const issue = await collection.findOne({ _id: new ObjectId(id) });
+    if (!issue) return false;
+    
+    const reactions = issue.reactions || [];
+    let updatedReactions;
+    
+    if (reactions.includes(userId)) {
+      updatedReactions = reactions.filter((u: string) => u !== userId);
+    } else {
+      updatedReactions = [...reactions, userId];
+    }
+    
+    await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { reactions: updatedReactions, updatedAt: new Date().toISOString() } }
+    );
+    return true;
   } catch (err) {
-    console.error("[MongoDB] getUsers failed:", err);
-    throw err;
+    console.error("[MongoDB] addReaction failed:", err);
+    return false;
   }
 }
 
+export async function addComment(id: string, comment: { userId: string, userName: string, text: string }): Promise<boolean> {
+  try {
+    const collection = await getCollection(ISSUES_COLLECTION);
+    const newComment = {
+      ...comment,
+      createdAt: new Date().toISOString()
+    };
+    
+    const result = await collection.updateOne(
+      { _id: new ObjectId(id) },
+      { 
+        $push: { comments: newComment as any },
+        $set: { updatedAt: new Date().toISOString() }
+      }
+    );
+    return result.modifiedCount === 1;
+  } catch (err) {
+    console.error("[MongoDB] addComment failed:", err);
+    return false;
+  }
+}
+
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+export async function getUsers(): Promise<User[]> {
+  try {
+    const collection = await getCollection(USERS_COLLECTION);
+    const results = await collection.find({}).toArray();
+    
+    return results.map(doc => ({
+      ...doc,
+      id: doc._id.toString(),
+      _id: undefined
+    })) as unknown as User[];
+  } catch (err) {
+    console.error("[MongoDB] getUsers failed:", err);
+    return [];
+  }
+}

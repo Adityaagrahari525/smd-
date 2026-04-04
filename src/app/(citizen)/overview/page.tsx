@@ -23,10 +23,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { useIssues } from "@/hooks/useIssues";
 import { useAuth } from "@/hooks/useAuth";
-import { getCleanUsername } from "@/services/mongoService";
+import { cn, getCleanUsername } from "@/lib/utils";
 import { ThumbsUp, MessageSquare, Send } from "lucide-react";
 
 // Helper for type icons (not in the DB model)
