@@ -164,42 +164,46 @@ export default function OverviewPage() {
 
             {/* Filters Bar */}
             <div className="flex flex-wrap items-center gap-3 mb-6">
-                <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                <div className="relative flex-1 min-w-[200px] sm:min-w-[300px]">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
                     <input
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Search by ID or Sector..."
-                        className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-secondary placeholder:text-slate-300"
+                        className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 text-secondary font-medium placeholder:text-slate-300 transition-all shadow-sm"
                     />
                 </div>
-                <select 
-                    value={selectedSector}
-                    onChange={e => setSelectedSector(e.target.value)}
-                    className="text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto"
-                >
-                    <option>All Sectors</option>
-                    <option>Sector 4-C</option>
-                    <option>Sector 9-G</option>
-                    <option>Industrial Hub</option>
-                    <option>Sector 1-A</option>
-                </select>
-                <select 
-                    value={selectedStatus}
-                    onChange={e => setSelectedStatus(e.target.value)}
-                    className="text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer w-full sm:w-auto"
-                >
-                    <option>All Statuses</option>
-                    <option>Pending</option>
-                    <option>In Progress</option>
-                    <option>Resolved</option>
-                </select>
-                <Button variant="outline" className="rounded-xl border-slate-200 text-slate-500 text-sm gap-2 hover:text-primary hover:border-primary/30 transition-all w-full sm:w-auto justify-center">
-                    <Filter className="w-4 h-4" /> Advanced Filters
-                </Button>
-                <Button variant="outline" className="rounded-xl border-slate-200 text-slate-500 text-sm gap-2 hover:text-primary hover:border-primary/30 transition-all">
-                    <Download className="w-4 h-4" /> Export CSV
-                </Button>
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <select 
+                        value={selectedSector}
+                        onChange={e => setSelectedSector(e.target.value)}
+                        className="flex-1 sm:flex-none text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-sm"
+                    >
+                        <option>All Sectors</option>
+                        <option>Sector 4-C</option>
+                        <option>Sector 9-G</option>
+                        <option>Industrial Hub</option>
+                        <option>Sector 1-A</option>
+                    </select>
+                    <select 
+                        value={selectedStatus}
+                        onChange={e => setSelectedStatus(e.target.value)}
+                        className="flex-1 sm:flex-none text-sm bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer shadow-sm"
+                    >
+                        <option>All Statuses</option>
+                        <option>Pending</option>
+                        <option>In Progress</option>
+                        <option>Resolved</option>
+                    </select>
+                </div>
+                <div className="flex gap-2 w-full lg:w-auto">
+                    <Button variant="outline" className="flex-1 lg:flex-none rounded-xl border-slate-200 text-slate-600 font-bold text-sm gap-2 hover:bg-slate-50 transition-all justify-center h-10 shadow-sm">
+                        <Filter className="w-4 h-4" /> <span className="hidden sm:inline">Advanced Filters</span><span className="sm:hidden">Filters</span>
+                    </Button>
+                    <Button variant="outline" className="flex-1 lg:flex-none rounded-xl border-slate-200 text-slate-600 font-bold text-sm gap-2 hover:bg-slate-50 transition-all justify-center h-10 shadow-sm">
+                        <Download className="w-4 h-4" /> <span className="hidden sm:inline">Export CSV</span><span className="sm:hidden">Export</span>
+                    </Button>
+                </div>
             </div>
 
             {/* Issues Table */}

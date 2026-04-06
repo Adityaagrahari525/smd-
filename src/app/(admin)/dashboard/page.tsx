@@ -141,11 +141,11 @@ export default function AdminDashboard() {
                             initial={{ opacity: 0, scale: 0.95, y: 30 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                            className="bg-white rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200/50"
+                            className="bg-white rounded-3xl sm:rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200/50"
                         >
-                            <div className="p-10 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                            <div className="p-6 sm:p-10 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
                                 <div>
-                                    <h2 className="text-2xl font-black text-secondary tracking-tight">Assignment Command</h2>
+                                    <h2 className="text-xl sm:text-2xl font-black text-secondary tracking-tight">Assignment Command</h2>
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Issue ID: {selectedIssue?.id}</p>
                                 </div>
                                 <Button 
@@ -158,7 +158,7 @@ export default function AdminDashboard() {
                                 </Button>
                             </div>
 
-                            <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="p-6 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {/* Left Side: Details */}
                                 <div className="space-y-6">
                                     <div>
@@ -232,24 +232,24 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
 
-                            <div className="p-10 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
+                            <div className="p-6 sm:p-10 bg-slate-50/50 border-t border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div className="flex items-center gap-2">
                                     <ShieldCheck className="w-4 h-4 text-success" />
                                     <span className="text-[9px] font-black text-success uppercase tracking-widest">Authorized Command</span>
                                 </div>
-                                <div className="flex gap-4">
+                                <div className="flex gap-4 w-full sm:w-auto">
                                     <Button 
                                         variant="ghost" 
                                         onClick={() => setIsModalOpen(false)}
-                                        className="h-12 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400"
+                                        className="flex-1 sm:flex-none h-12 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400"
                                     >
                                         Cancel
                                     </Button>
                                     <Button 
                                         onClick={handleSaveAssignment}
-                                        className="h-12 px-8 bg-secondary hover:bg-secondary/90 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20"
+                                        className="flex-1 sm:flex-none h-12 px-8 bg-secondary hover:bg-secondary/90 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20"
                                     >
-                                        Save & Dispatch Team
+                                        Save & Dispatch
                                     </Button>
                                 </div>
                             </div>
@@ -315,11 +315,11 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
                 {/* High-Fidelity Table */}
                 <div className="lg:col-span-8">
-                    <Card className="shadow-2xl shadow-slate-200/40 rounded-[3rem] bg-white overflow-hidden border-slate-100">
-                        <div className="p-10 border-b border-slate-50 flex flex-row items-center justify-between bg-white">
+                    <Card className="shadow-2xl shadow-slate-200/40 rounded-3xl sm:rounded-[3rem] bg-white overflow-hidden border-slate-100">
+                        <div className="p-6 sm:p-10 border-b border-slate-50 flex flex-row items-center justify-between bg-white">
                             <h3 className="text-xl font-black text-secondary tracking-tight">Active Problem Feed</h3>
                             <Button variant="ghost" className="h-10 text-[10px] font-black text-primary hover:bg-primary/5 uppercase tracking-widest gap-2">
-                                Manage Queue <ChevronRight className="w-4 h-4" />
+                                <span className="hidden sm:inline">Manage Queue</span> <ChevronRight className="w-4 h-4" />
                             </Button>
                         </div>
                         <div className="p-0">

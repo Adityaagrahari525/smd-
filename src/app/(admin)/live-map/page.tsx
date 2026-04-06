@@ -170,12 +170,12 @@ export default function LiveMapPage() {
         <div className="flex flex-col gap-6 pb-10">
 
             {/* ── ROW 1: Cards above the map ── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
                 {/* Active Incident Card */}
                 <Card className="shadow-lg rounded-[2rem] bg-white border-slate-100 overflow-hidden">
-                    <CardContent className="p-8">
-                        <div className="flex justify-between items-center mb-8">
+                    <CardContent className="p-6 sm:p-8">
+                        <div className="flex justify-between items-center mb-6 sm:mb-8">
                             <div className="flex items-center gap-3">
                                 <div className="w-2.5 h-2.5 bg-danger rounded-full animate-ping" />
                                 <span className="text-[10px] font-black text-danger uppercase tracking-[0.2em] italic">Active Incident</span>
@@ -183,34 +183,34 @@ export default function LiveMapPage() {
                             <span className="px-3 py-1 bg-danger text-white rounded-lg text-[9px] font-black uppercase tracking-widest italic">Critical</span>
                         </div>
 
-                        <h2 className="text-2xl font-black text-secondary tracking-tight mb-2 italic">Main Pipe Leakage</h2>
+                        <h2 className="text-xl sm:text-2xl font-black text-secondary tracking-tight mb-2 italic">Main Pipe Leakage</h2>
                         <div className="flex items-center gap-2 text-slate-400 font-bold text-xs mb-6 italic">
                             <MapPin className="w-4 h-4 text-primary" />
-                            Mira Bhayandar Road East, Sector 12
+                            <span className="truncate">Mira Bhayandar Road East, Sector 12</span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
                                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Risk Score</div>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-3xl font-black text-secondary tracking-tighter">94</span>
+                                    <span className="text-2xl sm:text-3xl font-black text-secondary tracking-tighter">94</span>
                                     <span className="text-sm font-black text-slate-300">/100</span>
                                 </div>
                             </div>
-                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                            <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-100">
                                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Severity</div>
-                                <div className="text-xl font-black text-danger tracking-tighter italic uppercase underline underline-offset-4 decoration-danger/20">High tier</div>
+                                <div className="text-lg sm:text-xl font-black text-danger tracking-tighter italic uppercase underline underline-offset-4 decoration-danger/20">High tier</div>
                             </div>
                         </div>
 
-                        <div className="space-y-3 mb-6 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                        <div className="space-y-2 sm:space-y-3 mb-6 text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                             <div className="flex justify-between"><span>Coordinates</span><span className="text-secondary font-black">19.0760° N, 72.8777° E</span></div>
-                            <div className="flex justify-between"><span>Estimated Loss</span><span className="text-danger font-black font-mono">450 L/min</span></div>
-                            <div className="flex justify-between"><span>Reported By</span><span className="text-secondary font-black">IoT Sensor JS-882</span></div>
+                            <div className="flex justify-between"><span>Loss Rate</span><span className="text-danger font-black font-mono">450 L/min</span></div>
+                            <div className="flex justify-between"><span>Report Source</span><span className="text-secondary font-black">IoT-JS-882</span></div>
                         </div>
 
                         <div className="flex gap-3">
-                            <Button className="flex-1 h-12 bg-[#007A8A] hover:bg-[#007A8A]/90 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all hover:scale-[1.02]">
+                            <Button className="flex-1 h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all hover:scale-[1.02]">
                                 Assign Crew
                             </Button>
                             <Button variant="outline" size="icon" className="w-12 h-12 rounded-xl border-slate-100 text-slate-400 hover:text-primary transition-all">
@@ -224,9 +224,9 @@ export default function LiveMapPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     {/* Map Overlays */}
                     <Card className="shadow-lg rounded-[2rem] bg-white border-slate-100">
-                        <CardContent className="p-7">
+                        <CardContent className="p-6 sm:p-7">
                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 italic">Map Overlays</div>
-                            <div className="space-y-5">
+                            <div className="space-y-4 sm:space-y-5">
                                 <OverlayToggle label="Network Heatmap" checked={true} />
                                 <OverlayToggle label="Problem Markers" checked={true} />
                                 <OverlayToggle label="Maintenance Crews" checked={false} />
@@ -236,12 +236,12 @@ export default function LiveMapPage() {
 
                     {/* Legend */}
                     <Card className="shadow-lg rounded-[2rem] bg-white border-slate-100">
-                        <CardContent className="p-7">
+                        <CardContent className="p-6 sm:p-7">
                             <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 italic">Legend</div>
-                            <div className="space-y-4">
-                                <LegendItem color="bg-danger" label="Critical Leakage (Red)" />
-                                <LegendItem color="bg-orange-500" label="Contamination Risk (Amber)" />
-                                <LegendItem color="bg-blue-500" label="Low Pressure Warning (Blue)" />
+                            <div className="space-y-3 sm:space-y-4">
+                                <LegendItem color="bg-danger" label="Critical (Red)" />
+                                <LegendItem color="bg-orange-500" label="Amber Alert" />
+                                <LegendItem color="bg-blue-500" label="Operation Blue" />
                             </div>
                         </CardContent>
                     </Card>
@@ -249,7 +249,7 @@ export default function LiveMapPage() {
             </div>
 
             {/* ── ROW 2: Full-width Leaflet Map ── */}
-            <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-lg" style={{ height: "520px" }}>
+            <div className="rounded-2xl sm:rounded-[2rem] overflow-hidden border border-slate-200 shadow-xl h-[350px] sm:h-[450px] lg:h-[520px]">
                 <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
             </div>
 

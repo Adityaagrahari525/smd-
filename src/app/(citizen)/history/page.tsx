@@ -96,23 +96,23 @@ export default function HistoryPage() {
             {/* Page Header */}
             <div className="mb-8">
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-2">CITIZEN HISTORY</div>
-                <h1 className="text-4xl font-black text-secondary tracking-tight mb-5">My Submission History</h1>
+                <h1 className="text-3xl sm:text-4xl font-black text-secondary tracking-tight mb-5">My Submission History</h1>
 
                 {/* Tabs */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {[
-                        { key: "all", label: "All Issues (24)" },
-                        { key: "active", label: "Active (3)" },
-                        { key: "resolved", label: "Resolved (21)" },
+                        { key: "all", label: "All Issues" },
+                        { key: "active", label: "Active" },
+                        { key: "resolved", label: "Resolved" },
                     ].map((tab) => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key as any)}
                             className={cn(
-                                "px-5 py-2 rounded-full text-sm font-bold transition-all",
+                                "flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all border",
                                 activeTab === tab.key
-                                    ? "bg-secondary text-white shadow-md shadow-secondary/20"
-                                    : "text-slate-400 hover:text-secondary border border-transparent hover:border-slate-200"
+                                    ? "bg-secondary text-white border-secondary shadow-md shadow-secondary/20"
+                                    : "text-slate-400 bg-white border-slate-100 hover:text-secondary hover:border-slate-200"
                             )}
                         >
                             {tab.label}

@@ -13,7 +13,8 @@ import {
     User,
     Droplets,
     LogOut,
-    AlertTriangle
+    AlertTriangle,
+    X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,31 +31,49 @@ const bottomItems = [
     { name: "Support", href: "/help", icon: HelpCircle },
 ];
 
-export function CitizenSidebar() {
+interface CitizenSidebarProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export function CitizenSidebar({ isOpen, onClose }: CitizenSidebarProps) {
     const pathname = usePathname();
     const { signOut } = useAuth();
 
     return (
-        <aside className="w-64 border-r border-slate-100 bg-white h-screen fixed left-0 top-0 flex flex-col z-40">
-            {/* Logo */}
-            <div className="px-6 pt-6 pb-5 border-b border-slate-50">
-                <div className="flex items-center gap-2.5 mb-1">
-                    <div className="bg-primary p-1.5 rounded-lg shadow-md shadow-primary/20">
-                        <Droplets className="w-5 h-5 text-white" />
+        <aside className={cn(
+            "w-64 border-r border-slate-100 bg-white h-screen fixed left-0 top-0 flex flex-col z-40 transition-transform duration-300 ease-in-out",
+            "lg:translate-x-0", // Desktop: always visible
+            isOpen ? "translate-x-0" : "-translate-x-full" // Mobile/Tablet: toggle visibility
+        )}>
+            {/* Logo & Close Button (Mobile) */}
+            <div className="px-6 pt-6 pb-5 border-b border-slate-50 flex items-center justify-between">
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2.5 mb-1">
+                        <div className="bg-primary p-1.5 rounded-lg shadow-md shadow-primary/20">
+                            <Droplets className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-xl font-black text-secondary tracking-tight">JalSuraksha</span>
                     </div>
-                    <span className="text-xl font-black text-secondary tracking-tight">JalSuraksha</span>
+                    <div className="text-[9px] font-black text-slate-300 uppercase tracking-[0.25em] pl-9">CITIZEN PORTAL</div>
                 </div>
-                <div className="text-[9px] font-black text-slate-300 uppercase tracking-[0.25em] pl-9">CITIZEN PORTAL</div>
+                <button 
+                    onClick={onClose}
+                    className="lg:hidden p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-secondary"
+                >
+                    <X className="w-5 h-5" />
+                </button>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-grow px-4 py-5 space-y-1">
+            <nav className="flex-grow px-4 py-5 space-y-1 overflow-y-auto">
                 {menuItems.map((item) => {
                     const isActive = pathname.startsWith(item.href);
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={() => onClose()} // Close on navigation (mobile)
                             className={cn(
                                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group relative",
                                 isActive
@@ -91,6 +110,7 @@ export function CitizenSidebar() {
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={() => onClose()} // Close on navigation (mobile)
                             className={cn(
                                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all",
                                 isActive ? "text-primary" : "text-slate-400 hover:text-secondary hover:bg-slate-50"

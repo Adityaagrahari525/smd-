@@ -45,22 +45,22 @@ export default function CommunityPage() {
     return (
         <div className="pb-12">
             {/* Page Header */}
-            <div className="flex items-start justify-between mb-8">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-6 mb-8">
                 <div>
-                    <h1 className="text-4xl font-black text-secondary tracking-tight mb-3">Community Feed</h1>
+                    <h1 className="text-3xl sm:text-4xl font-black text-secondary tracking-tight mb-3">Community Feed</h1>
                     <p className="text-sm text-slate-500 max-w-md leading-relaxed">
                         Monitor water security concerns raised by fellow citizens. Support
-                        high-impact issues to accelerate their resolution by municipal teams.
+                        high-impact issues to accelerate their resolution.
                     </p>
                 </div>
-                <div className="flex gap-2 shrink-0 mt-1">
+                <div className="flex gap-2 w-full sm:w-auto shrink-0 mt-1">
                     <button
                         onClick={() => setView("list")}
                         className={cn(
-                            "px-4 py-2 rounded-xl text-sm font-bold border transition-all",
+                            "flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-sm font-bold border transition-all",
                             view === "list"
                                 ? "bg-white border-slate-300 text-secondary shadow-sm"
-                                : "border-transparent text-slate-400 hover:text-secondary"
+                                : "border-transparent text-slate-400 hover:text-secondary bg-slate-50/50"
                         )}
                     >
                         Live List
@@ -68,10 +68,10 @@ export default function CommunityPage() {
                     <button
                         onClick={() => setView("map")}
                         className={cn(
-                            "px-4 py-2 rounded-xl text-sm font-bold border transition-all",
+                            "flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-sm font-bold border transition-all",
                             view === "map"
                                 ? "bg-white border-slate-300 text-secondary shadow-sm"
-                                : "border-transparent text-slate-400 hover:text-secondary"
+                                : "border-transparent text-slate-400 hover:text-secondary bg-slate-50/50"
                         )}
                     >
                         Map View

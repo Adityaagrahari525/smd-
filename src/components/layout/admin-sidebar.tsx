@@ -15,7 +15,8 @@ import {
     LogOut,
     HelpCircle,
     Plus,
-    Cpu
+    Cpu,
+    X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -31,29 +32,47 @@ const adminMenuItems = [
     { name: "Reports", href: "/reports", icon: FileSearch },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
     const pathname = usePathname();
     const { signOut } = useAuth();
 
     return (
-        <aside className="w-64 border-r border-slate-100 bg-white h-screen sticky top-0 flex flex-col p-4 shadow-sm z-30">
-            <div className="mb-10 px-4 py-2 flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                    <Droplet className="w-6 h-6 text-white" />
+        <aside className={cn(
+            "w-64 border-r border-slate-100 bg-white h-screen fixed lg:sticky left-0 top-0 flex flex-col p-4 shadow-sm z-40 transition-transform duration-300",
+            "lg:translate-x-0", // Visible on desktop
+            isOpen ? "translate-x-0" : "-translate-x-full" // Mobile drawer
+        )}>
+            <div className="mb-10 px-4 py-2 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
+                        <Droplet className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-sm font-black text-secondary tracking-tight leading-tight uppercase">Admin</h2>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-0.5">Control</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 className="text-sm font-black text-secondary tracking-tight leading-tight uppercase">Command Center</h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Fluid Authority</p>
-                </div>
+                <button 
+                    onClick={onClose}
+                    className="lg:hidden p-2 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-secondary"
+                >
+                    <X className="w-5 h-5" />
+                </button>
             </div>
 
-            <nav className="flex-grow space-y-1">
+            <nav className="flex-grow space-y-1 overflow-y-auto">
                 {adminMenuItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link
                             key={item.name}
                             href={item.href}
+                            onClick={() => onClose()}
                             className={cn(
                                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group border border-transparent",
                                 isActive
@@ -72,23 +91,24 @@ export function AdminSidebar() {
             </nav>
 
             <div className="mt-auto space-y-4 pt-4 border-t border-slate-50">
-                <Button className="w-full h-14 rounded-2xl bg-[#007A8A] hover:bg-[#00606D] shadow-xl shadow-[#007A8A]/20 gap-3 mb-6 font-black uppercase tracking-widest text-xs">
-                    <Plus className="w-5 h-5" />
-                    New Report
+                <Button className="w-full h-12 rounded-xl bg-secondary hover:bg-secondary/90 shadow-lg shadow-secondary/10 gap-3 mb-2 font-black uppercase tracking-widest text-[10px]">
+                    <Plus className="w-4 h-4" />
+                    New Action
                 </Button>
 
                 <Link
                     href="/support"
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-500 hover:text-secondary transition-colors"
+                    onClick={() => onClose()}
+                    className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-500 hover:text-secondary transition-colors"
                 >
-                    <HelpCircle className="w-5 h-5" />
+                    <HelpCircle className="w-4 h-4" />
                     Support
                 </Link>
                 <button 
                     onClick={() => signOut()}
-                    className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-500 hover:text-red-500 hover:bg-red-50 transition-all w-full rounded-xl cursor-pointer"
+                    className="flex items-center gap-3 px-4 py-2 text-sm font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all w-full rounded-xl cursor-pointer"
                 >
-                    <LogOut className="w-5 h-5" />
+                    <LogOut className="w-4 h-4" />
                     Logout
                 </button>
             </div>

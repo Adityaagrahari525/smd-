@@ -73,7 +73,7 @@ export default function InfrastructurePage() {
             </div>
 
             {/* KPI Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-4 sm:px-0">
                 <AssetKPI 
                     label="PUMPS" 
                     value="85%" 
@@ -85,7 +85,7 @@ export default function InfrastructurePage() {
                 <AssetKPI 
                     label="MAINLINES" 
                     value="92%" 
-                    status="No Leaks Detected" 
+                    status="Clean" 
                     icon={Droplet} 
                     color="text-blue-500" 
                     bgColor="bg-blue-50"
@@ -93,7 +93,7 @@ export default function InfrastructurePage() {
                 <AssetKPI 
                     label="RESERVOIRS" 
                     value="98%" 
-                    status="High Capacity" 
+                    status="Optimal" 
                     icon={Database} 
                     color="text-cyan-500" 
                     bgColor="bg-cyan-50"
@@ -101,7 +101,7 @@ export default function InfrastructurePage() {
                 <AssetKPI 
                     label="SENSORS" 
                     value="76%" 
-                    status="Maintenance Req." 
+                    status="Checking" 
                     icon={Wifi} 
                     color="text-orange-500" 
                     bgColor="bg-orange-50"
@@ -112,10 +112,10 @@ export default function InfrastructurePage() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Asset Distribution Map */}
                 <div className="lg:col-span-8">
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2.5rem] bg-white overflow-hidden p-8 h-full border border-slate-50">
-                        <div className="flex items-center justify-between mb-8">
-                            <h3 className="text-2xl font-black text-secondary tracking-tight italic">Asset Distribution Map</h3>
-                            <div className="flex items-center gap-6">
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-3xl sm:rounded-[2.5rem] bg-white overflow-hidden p-6 sm:p-8 h-full border border-slate-50">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+                            <h3 className="text-xl sm:text-2xl font-black text-secondary tracking-tight italic">Asset Distribution</h3>
+                            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                                 <MapLegend label="Healthy" color="bg-primary" />
                                 <MapLegend label="Warning" color="bg-orange-500" />
                                 <MapLegend label="Critical" color="bg-danger" />
@@ -123,7 +123,7 @@ export default function InfrastructurePage() {
                         </div>
 
                         {/* Mock Map Grid */}
-                        <div className="relative aspect-[16/9] bg-slate-100 rounded-[2rem] overflow-hidden border border-slate-200 group">
+                        <div className="relative aspect-[4/3] sm:aspect-[16/9] bg-slate-100 rounded-2xl sm:rounded-[2rem] overflow-hidden border border-slate-200 group">
                             <div className="absolute inset-0 opacity-10 pointer-events-none">
                                 <svg width="100%" height="100%">
                                     <pattern id="grid-pattern" width="60" height="60" patternUnits="userSpaceOnUse">
@@ -145,26 +145,26 @@ export default function InfrastructurePage() {
 
                 {/* Predictive AI Alerts */}
                 <div className="lg:col-span-4">
-                    <Card className="border-none bg-[#006473] text-white rounded-[2.5rem] p-10 h-full shadow-2xl shadow-slate-900/30 relative overflow-hidden group">
+                    <Card className="border-none bg-secondary text-white rounded-3xl sm:rounded-[2.5rem] p-8 sm:p-10 h-full shadow-2xl shadow-slate-900/30 relative overflow-hidden group">
                         <div className="relative z-10 flex flex-col h-full">
-                            <h3 className="text-2xl font-black italic tracking-tight mb-4">Predictive AI Alerts</h3>
-                            <p className="text-xs font-bold text-white/50 mb-10 leading-relaxed uppercase tracking-widest italic">Neural analysis identifies 2 critical assets at risk of failure in the next 72 hours.</p>
+                            <h3 className="text-xl sm:text-2xl font-black italic tracking-tight mb-4">Predictive AI</h3>
+                            <p className="text-[10px] font-bold text-white/50 mb-8 leading-relaxed uppercase tracking-widest italic">Neural analysis identifies 2 critical assets at risk of failure.</p>
                             
-                            <div className="space-y-6 flex-grow">
+                            <div className="space-y-4 sm:space-y-6 flex-grow">
                                 <AIAlert 
                                     title="Mainline B-12" 
-                                    desc="Unusual pressure oscillations detected. 89% probability of structural breach."
+                                    desc="Pressure oscillation detected. 89% risk."
                                     icon={AlertTriangle}
                                 />
                                 <AIAlert 
                                     title="Pump Unit 098" 
-                                    desc="Heat signature exceeds baseline by 12%. Bearing failure predicted."
+                                    desc="Heat signature exceeds baseline. Bearing failure."
                                     icon={TrendingUp}
                                 />
                             </div>
 
-                            <Button className="w-full h-16 mt-10 bg-white hover:bg-slate-50 text-[#006473] rounded-xl font-black uppercase tracking-widest text-xs shadow-3xl">
-                                View Full Intelligence Report
+                            <Button className="w-full h-14 sm:h-16 mt-8 sm:mt-10 bg-white hover:bg-slate-50 text-secondary rounded-xl font-black uppercase tracking-widest text-[10px] sm:text-xs">
+                                View Intelligence Report
                             </Button>
                         </div>
                         {/* Decorative Background Element */}
@@ -215,48 +215,50 @@ export default function InfrastructurePage() {
 
                 {/* Asset Inventory Table */}
                 <div className="lg:col-span-8">
-                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-[2.5rem] bg-white overflow-hidden p-10 border border-slate-50 relative group">
-                        <div className="flex items-center justify-between mb-10">
-                            <h3 className="text-2xl font-black text-secondary tracking-tight italic">Asset Inventory</h3>
-                            <div className="flex gap-4">
-                                <Button variant="outline" size="icon" className="w-12 h-12 rounded-xl border-slate-100 text-slate-400">
+                    <Card className="border-none shadow-xl shadow-slate-200/50 rounded-3xl sm:rounded-[2.5rem] bg-white overflow-hidden p-6 sm:p-10 border border-slate-50 relative group">
+                        <div className="flex items-center justify-between mb-8 sm:mb-10">
+                            <h3 className="text-xl sm:text-2xl font-black text-secondary tracking-tight italic">Inventory</h3>
+                            <div className="flex gap-2 sm:gap-4">
+                                <Button variant="outline" size="icon" className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-slate-100 text-slate-400">
                                     <Filter className="w-4 h-4" />
                                 </Button>
-                                <Button variant="outline" size="icon" className="w-12 h-12 rounded-xl border-slate-100 text-slate-400">
+                                <Button variant="outline" size="icon" className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl border-slate-100 text-slate-400">
                                     <Download className="w-4 h-4" />
                                 </Button>
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                        <th className="pb-6 text-left">Asset ID</th>
-                                        <th className="pb-6 text-left">Type</th>
-                                        <th className="pb-6 text-left">Installed</th>
-                                        <th className="pb-6 text-left">Last Check</th>
-                                        <th className="pb-6 text-right">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    <AssetRow id="PUMP-9801" type="Heavy Duty Pump" date="Jan 2021" last="Aug 2023" status="STABLE" color="bg-primary/10 text-primary" />
-                                    <AssetRow id="LINE-B12" type="Transmission Main" date="Mar 2018" last="Sep 2023" status="CRITICAL" color="bg-danger/10 text-danger" />
-                                    <AssetRow id="RES-DELTA" type="Ground Reservoir" date="Dec 2015" last="Jul 2023" status="STABLE" color="bg-primary/10 text-primary" />
-                                    <AssetRow id="SNS-442" type="Pressure Sensor" date="Jun 2023" last="None" status="WARNING" color="bg-orange-500/10 text-orange-500" />
-                                </tbody>
-                            </table>
+                        <div className="overflow-x-auto -mx-6 sm:mx-0">
+                            <div className="min-w-max px-6 sm:px-0">
+                                <table className="w-full">
+                                    <thead>
+                                        <tr className="border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            <th className="pb-6 text-left pr-8">Asset ID</th>
+                                            <th className="pb-6 text-left pr-8">Type</th>
+                                            <th className="pb-6 text-left pr-8">Installed</th>
+                                            <th className="pb-6 text-left pr-8 whitespace-nowrap">Last Check</th>
+                                            <th className="pb-6 text-right">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        <AssetRow id="PUMP-9801" type="Heavy Pump" date="Jan 2021" last="Aug 2023" status="STABLE" color="bg-primary/10 text-primary" />
+                                        <AssetRow id="LINE-B12" type="Mainline" date="Mar 2018" last="Sep 2023" status="CRITICAL" color="bg-danger/10 text-danger" />
+                                        <AssetRow id="RES-DELTA" type="Reservoir" date="Dec 2015" last="Jul 2023" status="STABLE" color="bg-primary/10 text-primary" />
+                                        <AssetRow id="SNS-442" type="Sensor" date="Jun 2023" last="None" status="WARNING" color="bg-orange-500/10 text-orange-500" />
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </Card>
                 </div>
             </div>
 
             {/* Floating Action Button */}
-            <button className="fixed bottom-12 right-12 px-8 h-18 bg-[#006473] text-white rounded-2xl flex items-center gap-4 shadow-3xl shadow-slate-900/40 hover:scale-[1.05] active:scale-95 transition-all z-50 group border border-white/10">
+            <button className="fixed bottom-6 right-6 sm:bottom-12 sm:right-12 px-6 sm:px-8 h-14 sm:h-18 bg-secondary text-white rounded-2xl flex items-center gap-3 sm:gap-4 shadow-3xl shadow-slate-900/40 hover:scale-[1.05] active:scale-95 transition-all z-50 group border border-white/10">
                 <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-90 transition-transform">
-                    <Plus className="w-6 h-6" />
+                    <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <span className="text-sm font-black uppercase tracking-widest pr-2">Add New Asset</span>
+                <span className="text-xs sm:text-sm font-black uppercase tracking-widest pr-2">Add Asset</span>
             </button>
         </div>
     );
@@ -264,16 +266,16 @@ export default function InfrastructurePage() {
 
 function AssetKPI({ label, value, status, icon: Icon, color, bgColor }: any) {
     return (
-        <Card className="border-none shadow-xl shadow-slate-200/40 bg-white rounded-[2.5rem] p-10 group border border-slate-50">
-            <div className="flex justify-between items-start mb-10">
-                <div className={cn("p-4 rounded-xl shadow-inner shadow-slate-900/5", bgColor, color)}>
-                    <Icon className="w-6 h-6" />
+        <Card className="border-none shadow-xl shadow-slate-200/40 bg-white rounded-3xl sm:rounded-[2.5rem] p-8 sm:p-10 group border border-slate-50">
+            <div className="flex justify-between items-start mb-6 sm:mb-10">
+                <div className={cn("p-3 sm:p-4 rounded-xl shadow-inner shadow-slate-900/5", bgColor, color)}>
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest italic">{label}</span>
+                <span className="text-[9px] sm:text-[10px] font-black text-slate-300 uppercase tracking-widest italic">{label}</span>
             </div>
             <div className="space-y-1">
-                <div className="text-5xl font-black text-secondary tracking-tighter italic">{value}</div>
-                <div className={cn("text-[10px] font-black uppercase tracking-widest", color)}>{status}</div>
+                <div className="text-4xl sm:text-5xl font-black text-secondary tracking-tighter italic">{value}</div>
+                <div className={cn("text-[9px] sm:text-[10px] font-black uppercase tracking-widest", color)}>{status}</div>
             </div>
         </Card>
     );
