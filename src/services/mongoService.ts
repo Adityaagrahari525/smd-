@@ -55,7 +55,91 @@ const ISSUES_COLLECTION = "issues";
 const REPORTS_COLLECTION = "reports";
 const USERS_COLLECTION = "users";
 
+function getIsMongoConfigured() {
+  const uri = process.env.MONGODB_URI;
+  const isPlaceholder = uri?.includes("cluster.mongodb.net") && uri?.includes("admin:password");
+  return !!(uri && !isPlaceholder);
+}
+
+// Use global storage for mock data to persist across HMR in development
+const globalStore = global as typeof globalThis & {
+  jalsuraksha_mock_issues?: WaterIssue[];
+  jalsuraksha_mock_reports?: Report[];
+};
+
+if (!globalStore.jalsuraksha_mock_issues || globalStore.jalsuraksha_mock_issues.length === 0) {
+  globalStore.jalsuraksha_mock_issues = [
+    {
+      id: "JS-9021",
+      userId: "mock-user-1",
+      title: "Mainline Pipe Burst",
+      description: "Large crack in the primary main line at the intersection. Water pressure in the sector is dropping rapidly.",
+      location: "Sector 4-C, Palm Grove Avenue",
+      status: "In Progress",
+      severity: "CRITICAL",
+      isApproved: true,
+      assignedTeam: "Emergency Unit 4B",
+      estimatedTime: "45 mins",
+      reactions: ["mock-user-2", "mock-user-3"],
+      comments: [
+        { userId: "mock-user-2", userName: "Aravind S.", text: "Verified. Water is flooding the street.", createdAt: new Date(Date.now() - 3600000).toISOString() }
+      ],
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      updatedAt: new Date(Date.now() - 3600000).toISOString(),
+    },
+    {
+      id: "JS-8842",
+      userId: "mock-user-2",
+      title: "Water Contamination Alert",
+      description: "Tap water appears slightly yellowish since this morning. Noticeable metallic smell in the kitchen and bathroom.",
+      location: "Sector 9-G, Hillcrest Bypass",
+      status: "Pending",
+      severity: "HIGH",
+      isApproved: true,
+      reactions: ["mock-user-1"],
+      comments: [],
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      updatedAt: new Date(Date.now() - 172800000).toISOString(),
+    },
+    {
+      id: "JS-8751",
+      userId: "mock-user-3",
+      title: "Low Pressure in Ward 12",
+      description: "Residents reporting significantly reduced water pressure over the last 48 hours. Hard to run appliances.",
+      location: "Industrial Hub, Row 14",
+      status: "Resolved",
+      severity: "MEDIUM",
+      isApproved: true,
+      assignedTeam: "Maintenance Alpha",
+      reactions: [],
+      comments: [],
+      createdAt: new Date(Date.now() - 259200000).toISOString(),
+      updatedAt: new Date(Date.now() - 43200000).toISOString(),
+    },
+    {
+       id: "JS-8610",
+       userId: "mock-user-1",
+       title: "Minor Leakage in Service Line",
+       description: "Small leak noticed near the water meter. Not critical but wasting water.",
+       location: "Sector 1-A, Central Square",
+       status: "Pending",
+       severity: "LOW",
+       isApproved: false,
+       reactions: [],
+       comments: [],
+       createdAt: new Date().toISOString(),
+       updatedAt: new Date().toISOString(),
+    }
+  ];
+}
+if (!globalStore.jalsuraksha_mock_reports) {
+  globalStore.jalsuraksha_mock_reports = [];
+}
+
 async function getCollection(name: string) {
+  if (!getIsMongoConfigured()) {
+    throw new Error("MongoDB not configured. Using Mock mode.");
+  }
   const client = await clientPromise;
   return client.db(DB_NAME).collection(name);
 }
@@ -70,6 +154,15 @@ export async function getData(filters?: {
   userId?: string;
 }): Promise<WaterIssue[]> {
   try {
+    if (!getIsMongoConfigured()) {
+      let mock = [...(globalStore.jalsuraksha_mock_issues || [])];
+      if (filters?.status) mock = mock.filter(i => i.status === filters.status);
+      if (filters?.severity) mock = mock.filter(i => i.severity === filters.severity);
+      if (typeof filters?.isApproved === "boolean") mock = mock.filter(i => i.isApproved === filters.isApproved);
+      if (filters?.userId) mock = mock.filter(i => i.userId === filters.userId);
+      return mock;
+    }
+
     const collection = await getCollection(ISSUES_COLLECTION);
     let query: any = {};
     
@@ -94,6 +187,10 @@ export async function getData(filters?: {
 /** Fetch a single issue by id */
 export async function getDataById(id: string): Promise<WaterIssue | null> {
   try {
+    if (!getIsMongoConfigured()) {
+      return globalStore.jalsuraksha_mock_issues?.find(i => i.id === id) || null;
+    }
+
     const collection = await getCollection(ISSUES_COLLECTION);
     const doc = await collection.findOne({ _id: new ObjectId(id) });
     if (!doc) return null;
@@ -114,10 +211,8 @@ export async function createData(
   payload: Omit<WaterIssue, "id" | "createdAt" | "updatedAt" | "isApproved" | "reactions" | "comments">
 ): Promise<WaterIssue> {
   try {
-    const collection = await getCollection(ISSUES_COLLECTION);
     const now = new Date().toISOString();
-    
-    const newDoc = {
+    const newDocObj = {
       ...payload,
       isApproved: false,
       reactions: [],
@@ -125,11 +220,21 @@ export async function createData(
       createdAt: now,
       updatedAt: now,
     };
-    
-    const result = await collection.insertOne(newDoc);
+
+    if (!getIsMongoConfigured()) {
+      const mockDoc: WaterIssue = {
+        ...newDocObj,
+        id: "mock-" + Math.random().toString(36).substring(2, 9),
+      };
+      globalStore.jalsuraksha_mock_issues?.push(mockDoc);
+      return mockDoc;
+    }
+
+    const collection = await getCollection(ISSUES_COLLECTION);
+    const result = await collection.insertOne(newDocObj);
     
     return {
-      ...newDoc,
+      ...newDocObj,
       id: result.insertedId.toString()
     } as unknown as WaterIssue;
   } catch (err) {
@@ -144,8 +249,22 @@ export async function updateData(
   patch: Partial<Omit<WaterIssue, "id" | "createdAt">>
 ): Promise<WaterIssue | null> {
   try {
-    const collection = await getCollection(ISSUES_COLLECTION);
     const updatedAt = new Date().toISOString();
+
+    if (!getIsMongoConfigured()) {
+      const idx = globalStore.jalsuraksha_mock_issues?.findIndex(i => i.id === id);
+      if (idx === undefined || idx === -1) return null;
+      
+      const updated = {
+        ...globalStore.jalsuraksha_mock_issues![idx],
+        ...patch,
+        updatedAt
+      };
+      globalStore.jalsuraksha_mock_issues![idx] = updated;
+      return updated;
+    }
+
+    const collection = await getCollection(ISSUES_COLLECTION);
     
     const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(id) },
@@ -169,6 +288,12 @@ export async function updateData(
 /** Delete an issue by id */
 export async function deleteData(id: string): Promise<boolean> {
   try {
+    if (!getIsMongoConfigured()) {
+      const prevLen = globalStore.jalsuraksha_mock_issues?.length || 0;
+      globalStore.jalsuraksha_mock_issues = globalStore.jalsuraksha_mock_issues?.filter(i => i.id !== id);
+      return (globalStore.jalsuraksha_mock_issues?.length || 0) < prevLen;
+    }
+
     const collection = await getCollection(ISSUES_COLLECTION);
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
@@ -182,6 +307,10 @@ export async function deleteData(id: string): Promise<boolean> {
 
 export async function getReports(): Promise<Report[]> {
   try {
+    if (!getIsMongoConfigured()) {
+      return globalStore.jalsuraksha_mock_reports || [];
+    }
+
     const collection = await getCollection(REPORTS_COLLECTION);
     const results = await collection.find({}).sort({ createdAt: -1 }).toArray();
     
@@ -198,18 +327,26 @@ export async function getReports(): Promise<Report[]> {
 
 export async function createReport(payload: Omit<Report, "id" | "createdAt">): Promise<Report> {
   try {
-    const collection = await getCollection(REPORTS_COLLECTION);
     const now = new Date().toISOString();
-    
-    const newDoc = {
+    const newDocObj = {
       ...payload,
       createdAt: now,
     };
-    
-    const result = await collection.insertOne(newDoc);
+
+    if (!getIsMongoConfigured()) {
+      const mockDoc: Report = {
+        ...newDocObj,
+        id: "report-" + Math.random().toString(36).substring(2, 9),
+      };
+      globalStore.jalsuraksha_mock_reports?.push(mockDoc);
+      return mockDoc;
+    }
+
+    const collection = await getCollection(REPORTS_COLLECTION);
+    const result = await collection.insertOne(newDocObj);
     
     return {
-      ...newDoc,
+      ...newDocObj,
       id: result.insertedId.toString()
     } as unknown as Report;
   } catch (err) {

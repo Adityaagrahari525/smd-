@@ -35,6 +35,7 @@ export default function ReportIssuePage() {
     const [severity, setSeverity] = React.useState<WaterIssue["severity"]>("MEDIUM");
     const [pickedLocation, setPickedLocation] = React.useState<PickedLocation | null>(null);
     const [submitted, setSubmitted] = React.useState(false);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
     const [gpsLoading, setGpsLoading] = React.useState(false);
     const [gpsError, setGpsError] = React.useState<string | null>(null);
     const { addIssue } = useIssues();
@@ -183,34 +184,44 @@ export default function ReportIssuePage() {
             alert("Please provide a description with at least 20 characters.");
             return;
         }
-        if (!user) {
+        if (!user || !user.id) {
             alert("You must be logged in to submit a report.");
             return;
         }
 
-        const success = await addIssue({
-            userId: user.id,
-            title: `${category}: ${description.substring(0, 20)}...`,
-            description,
-            location: `Sector ${Math.floor(Math.random() * 10)}-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
-            lat: pickedLocation.lat,
-            lng: pickedLocation.lng,
-            status: "Pending",
-            severity: severity,
-            evidenceUrl: capturedImage || undefined,
-        });
+        setIsSubmitting(true);
+        try {
+            const success = await addIssue({
+                userId: user.id,
+                title: `${category}: ${description.substring(0, 20)}...`,
+                description,
+                location: `Sector ${Math.floor(Math.random() * 10)}-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`,
+                lat: pickedLocation.lat,
+                lng: pickedLocation.lng,
+                status: "Pending",
+                severity: severity,
+                evidenceUrl: capturedImage || undefined,
+            });
 
-        if (success) {
-            setSubmitted(true);
-            setDescription("");
-            setCitizenName("");
-            setPickedLocation(null);
-            setCapturedImage(null);
-            if (markerRef.current && mapInstanceRef.current) {
-                mapInstanceRef.current.removeLayer(markerRef.current);
-                markerRef.current = null;
+            if (success) {
+                setSubmitted(true);
+                setDescription("");
+                setCitizenName("");
+                setPickedLocation(null);
+                setCapturedImage(null);
+                if (markerRef.current && mapInstanceRef.current) {
+                    mapInstanceRef.current.removeLayer(markerRef.current);
+                    markerRef.current = null;
+                }
+                mapInstanceRef.current?.setView([19.076, 72.8777], 13);
+            } else {
+                alert("Failed to submit issue. Please check your connection and try again.");
             }
-            mapInstanceRef.current?.setView([19.076, 72.8777], 13);
+        } catch (err) {
+            console.error("Submission error:", err);
+            alert("An unexpected error occurred during submission.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -463,9 +474,14 @@ export default function ReportIssuePage() {
 
                             <Button
                                 type="submit"
-                                className="w-full h-12 bg-secondary hover:bg-secondary/90 text-white rounded-xl font-bold text-sm gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-secondary/20"
+                                disabled={isSubmitting}
+                                className="w-full h-12 bg-secondary hover:bg-secondary/90 text-white rounded-xl font-bold text-sm gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-secondary/20 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                Submit My Issue <ArrowRight className="w-4 h-4" />
+                                {isSubmitting ? (
+                                    <><RefreshCw className="w-4 h-4 animate-spin" /> Processing...</>
+                                ) : (
+                                    <><Send className="w-4 h-4" /> Submit My Issue <ArrowRight className="w-4 h-4" /></>
+                                )}
                             </Button>
 
                             <button type="button" className="w-full text-sm text-slate-400 hover:text-secondary transition-colors font-medium">
