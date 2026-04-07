@@ -212,7 +212,7 @@ export async function createData(
 ): Promise<WaterIssue> {
   try {
     const now = new Date().toISOString();
-    const newDocObj = {
+    const newDocObj: any = {
       ...payload,
       isApproved: false,
       reactions: [],
@@ -328,7 +328,7 @@ export async function getReports(): Promise<Report[]> {
 export async function createReport(payload: Omit<Report, "id" | "createdAt">): Promise<Report> {
   try {
     const now = new Date().toISOString();
-    const newDocObj = {
+    const newDocObj: any = {
       ...payload,
       createdAt: now,
     };

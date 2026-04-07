@@ -21,6 +21,7 @@ import { useIssues } from "@/hooks/useIssues";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { calculateDistance, formatDistance, MC_COORDINATES } from "@/lib/geo";
+import type { WaterIssue } from "@/services/mongoService";
 
 interface PickedLocation {
     lat: number;

@@ -35,7 +35,7 @@ export default function ProblemListPage() {
     const [searchTerm, setSearchTerm] = React.useState("");
 
     // Derive Stats
-    const stats = [
+    const stats: { label: string; value: string; color: string; suffix?: string }[] = [
         { label: "Active Issues", value: issues.filter(i => i.status !== "Resolved").length.toString(), color: "text-primary" },
         { label: "Total Reports", value: issues.length.toString(), color: "text-secondary" },
         { label: "Critical", value: issues.filter(i => i.severity === "CRITICAL" && i.status !== "Resolved").length.toString().padStart(2, '0'), color: "text-danger" },
