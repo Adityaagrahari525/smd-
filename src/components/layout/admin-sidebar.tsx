@@ -43,7 +43,7 @@ export function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
     return (
         <aside className={cn(
-            "w-64 border-r border-slate-100 bg-white h-screen fixed lg:sticky left-0 top-0 flex flex-col p-4 shadow-sm z-40 transition-transform duration-300",
+            "w-64 border-r border-slate-100 bg-white h-screen fixed lg:sticky left-0 top-0 flex flex-col p-4 shadow-sm z-50 transition-transform duration-300",
             "lg:translate-x-0", // Visible on desktop
             isOpen ? "translate-x-0" : "-translate-x-full" // Mobile drawer
         )}>

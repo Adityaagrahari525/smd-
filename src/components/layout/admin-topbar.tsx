@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
     Search,
     Bell,
@@ -43,13 +44,17 @@ export function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
 
             <div className="flex items-center gap-2 sm:gap-4 ml-4">
                 <div className="hidden md:flex items-center gap-1 border-r border-slate-100 pr-4 mr-2">
-                    <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-primary hover:bg-primary/5 rounded-full">
-                        <Bell className="w-5 h-5" />
-                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="text-slate-500 hover:text-primary hover:bg-primary/5 rounded-full">
-                        <Settings className="w-5 h-5" />
-                    </Button>
+                    <Link href="/notifications">
+                        <Button variant="ghost" size="icon" className="relative text-slate-500 hover:text-primary hover:bg-primary/5 rounded-full">
+                            <Bell className="w-5 h-5" />
+                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                        </Button>
+                    </Link>
+                    <Link href="/settings">
+                        <Button variant="ghost" size="icon" className="text-slate-500 hover:text-primary hover:bg-primary/5 rounded-full">
+                            <Settings className="w-5 h-5" />
+                        </Button>
+                    </Link>
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2">
@@ -57,13 +62,15 @@ export function AdminTopbar({ onMenuClick }: AdminTopbarProps) {
                         <div className="text-xs sm:text-sm font-black text-secondary leading-tight truncate max-w-[80px] sm:max-w-[120px]">{user?.email.split('@')[0] || "Admin"}</div>
                         <div className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">{user?.role === 'admin' ? "Chief Admin" : "Operator"}</div>
                     </div>
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center shrink-0">
-                        {user?.email ? (
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Admin" />
-                        ) : (
-                            <User className="w-5 h-5 text-slate-400" />
-                        )}
-                    </div>
+                    <Link href="/settings">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center shrink-0 cursor-pointer hover:border-primary transition-colors">
+                            {user?.email ? (
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="Admin" />
+                            ) : (
+                                <User className="w-5 h-5 text-slate-400" />
+                            )}
+                        </div>
+                    </Link>
                 </div>
             </div>
         </header>

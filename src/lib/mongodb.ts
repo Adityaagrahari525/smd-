@@ -5,7 +5,7 @@ if (!process.env.MONGODB_URI) {
 }
 
 const uri = process.env.MONGODB_URI;
-const isPlaceholder = uri?.includes("cluster.mongodb.net") && uri?.includes("admin:password");
+const isPlaceholder = uri?.includes("admin:password");
 const options = {};
 
 let client: MongoClient | null;

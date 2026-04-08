@@ -7,12 +7,7 @@ import { Droplets, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const navLinks = [
-    { name: "Reports", href: "#" },
-    { name: "Infrastructure", href: "#" },
-    { name: "Quality", href: "#" },
-    { name: "Contact", href: "#" },
-];
+const navLinks: { name: string; href: string }[] = [];
 
 export function Header() {
     const [isScrolled, setIsScrolled] = React.useState(false);

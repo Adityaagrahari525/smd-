@@ -19,25 +19,41 @@ export default function LoginClient() {
     const [activeTab, setActiveTab] = React.useState<"citizen" | "authority">("citizen");
     const [showPassword, setShowPassword] = React.useState(false);
     const [remember, setRemember] = React.useState(false);
+    const [email, setEmail] = React.useState("");
+    const [password, setPassword] = React.useState("");
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState<string | null>(null);
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { signIn } = useAuth();
+    const { signIn, error: authError } = useAuth();
     const redirectPath = searchParams.get("redirect");
+
+    // Sync auth error to local state for display
+    React.useEffect(() => {
+        if (authError) setError(authError);
+    }, [authError]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
+        setError(null);
         
-        // Use the signIn from useAuth - currently a mock but wired up
-        const success = await signIn("demo@example.com", "password");
+        try {
+            const success = await signIn(email, password);
 
-        if (success) {
-            if (redirectPath) {
-                router.push(redirectPath);
-            } else if (activeTab === "citizen") {
-                router.push("/overview");
-            } else {
-                router.push("/dashboard");
+            if (success) {
+                if (redirectPath) {
+                    router.push(redirectPath);
+                } else if (activeTab === "authority") {
+                    router.push("/dashboard");
+                } else {
+                    router.push("/overview");
+                }
             }
+        } catch (err) {
+            setError("An unexpected error occurred.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -79,6 +95,13 @@ export default function LoginClient() {
                         <p className="text-sm text-slate-400">Access the JalSuraksha Command Center</p>
                     </div>
 
+                    {/* Error Message */}
+                    {error && (
+                        <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold text-center animate-shake">
+                            {error}
+                        </div>
+                    )}
+
                     {/* Tab Switcher */}
                     <div className="flex bg-white/5 border border-white/10 p-1 rounded-xl mb-8">
                         <button
@@ -117,6 +140,8 @@ export default function LoginClient() {
                                 <input
                                     type="text"
                                     placeholder="name@domain.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/8 transition-all"
                                     required
                                 />
@@ -138,6 +163,8 @@ export default function LoginClient() {
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     className="w-full h-12 bg-white/5 border border-white/10 rounded-xl pl-11 pr-11 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 focus:bg-white/8 transition-all"
                                     required
                                 />
@@ -168,9 +195,10 @@ export default function LoginClient() {
                         {/* Submit */}
                         <button
                             type="submit"
-                            className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20 mt-2"
+                            disabled={loading}
+                            className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20 mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Secure Login
+                            {loading ? "Authenticating..." : "Secure Login"}
                         </button>
                     </form>
 
@@ -195,13 +223,10 @@ export default function LoginClient() {
                         </button>
                     </div>
 
-                    {/* Sign Up */}
-                    <p className="text-center text-sm text-slate-500 mt-7">
                         Don't have an account?{" "}
-                        <Link href="/login" className="text-primary font-bold hover:text-primary/80 transition-colors">
+                        <Link href="/register" className="text-primary font-bold hover:text-primary/80 transition-colors">
                             Sign Up
                         </Link>
-                    </p>
                 </div>
             </motion.div>
         </div>

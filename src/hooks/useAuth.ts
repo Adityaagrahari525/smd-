@@ -97,6 +97,7 @@ export function useAuth() {
         if (error) throw error;
         return true;
       } catch (err: any) {
+        console.error("[Auth] signIn failed:", err.message);
         setState((s) => ({ ...s, loading: false, error: err.message }));
         return false;
       }
@@ -137,6 +138,7 @@ export function useAuth() {
         if (error) throw error;
         return true;
       } catch (err: any) {
+        console.error("[Auth] signUp failed:", err.message);
         setState((s) => ({ ...s, loading: false, error: err.message }));
         return false;
       }

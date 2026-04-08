@@ -60,20 +60,12 @@ export default function LandingPage() {
 
   const handleReportClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (user) {
-      router.push("/report");
-    } else {
-      router.push("/login?redirect=/report");
-    }
+    router.push("/login");
   };
 
   const handleDashboardClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (user) {
-      router.push(user.role === "admin" ? "/dashboard" : "/overview");
-    } else {
-      router.push("/login");
-    }
+    router.push("/login");
   };
 
   return (
@@ -110,13 +102,13 @@ export default function LandingPage() {
                 onClick={handleReportClick}
                 className="w-full sm:w-auto sm:h-16 h-14 px-10 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl transition-all hover:scale-105 active:scale-95"
               >
-                Submit Report
+                Report Issue
               </Button>
               <Button 
                 onClick={handleDashboardClick}
-                variant="outline" 
-                className="w-full sm:w-auto sm:h-16 h-14 px-10 border-white/30 text-white hover:bg-white/10 rounded-xl font-bold uppercase tracking-widest text-sm backdrop-blur-md transition-all sm:mx-0"
+                className="w-full sm:w-auto sm:h-16 h-14 px-10 bg-white text-secondary hover:bg-white/90 rounded-xl font-bold uppercase tracking-widest text-sm transition-all sm:mx-0 flex items-center justify-center gap-2"
               >
+                <LayoutGrid className="w-5 h-5" />
                 Dashboard
               </Button>
             </div>
@@ -276,8 +268,7 @@ export default function LandingPage() {
                 </Button>
                 <Button 
                   onClick={handleReportClick}
-                  variant="outline" 
-                  className="h-14 sm:h-16 px-10 sm:px-12 border-white/20 text-white hover:bg-white/10 rounded-xl font-bold uppercase tracking-widest text-sm backdrop-blur-md transition-all"
+                  className="h-14 sm:h-16 px-10 sm:px-12 bg-white text-secondary hover:bg-white/90 rounded-xl font-bold uppercase tracking-widest text-sm shadow-xl transition-all"
                 >
                   Speak with an Expert
                 </Button>

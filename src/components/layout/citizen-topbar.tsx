@@ -44,10 +44,12 @@ export function CitizenTopbar({ onMenuClick }: CitizenTopbarProps) {
                 </button>
 
                 {/* Notifications */}
-                <button className="relative w-9 h-9 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-secondary transition-colors">
-                    <Bell className="w-5 h-5" />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-                </button>
+                <Link href="/notifications">
+                    <button className="relative w-9 h-9 rounded-xl hover:bg-slate-50 flex items-center justify-center text-slate-400 hover:text-secondary transition-colors">
+                        <Bell className="w-5 h-5" />
+                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                    </button>
+                </Link>
 
                 {/* Avatar & Info */}
                 <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 border-l border-slate-100">
@@ -55,13 +57,15 @@ export function CitizenTopbar({ onMenuClick }: CitizenTopbarProps) {
                         <div className="text-xs font-black text-secondary leading-tight line-clamp-1">{user?.email.split('@')[0] || "Citizen"}</div>
                         <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Active</div>
                     </div>
-                    <button className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shadow-md shadow-secondary/20 hover:bg-secondary/90 transition-colors overflow-hidden border border-secondary/20">
-                        {user?.email ? (
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="User" />
-                        ) : (
-                            <User className="w-5 h-5 text-white" />
-                        )}
-                    </button>
+                    <Link href="/settings">
+                        <button className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shadow-md shadow-secondary/20 hover:bg-secondary/90 transition-colors overflow-hidden border border-secondary/20">
+                            {user?.email ? (
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.email}`} alt="User" />
+                            ) : (
+                                <User className="w-5 h-5 text-white" />
+                            )}
+                        </button>
+                    </Link>
                 </div>
             </div>
         </header>
