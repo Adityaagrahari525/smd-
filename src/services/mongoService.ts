@@ -180,15 +180,24 @@ export async function getData(filters?: {
       _id: undefined
     })) as unknown as WaterIssue[];
   } catch (err) {
-    console.warn("[MongoDB] getData failed, falling back to mock data:", err);
-    let mock = [...(globalStore.jalsuraksha_mock_issues || [])];
-    if (filters?.status) mock = mock.filter(i => i.status === filters.status);
-    if (filters?.severity) mock = mock.filter(i => i.severity === filters.severity);
-    if (typeof filters?.isApproved === "boolean") mock = mock.filter(i => i.isApproved === filters.isApproved);
-    if (filters?.userId) mock = mock.filter(i => i.userId === filters.userId);
-    return mock;
+    console.warn("[MongoDB] getData failed:", err);
+    
+    // Only fall back to mock data in non-production environments
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      let mock = [...(globalStore.jalsuraksha_mock_issues || [])];
+      if (filters?.status) mock = mock.filter(i => i.status === filters.status);
+      if (filters?.severity) mock = mock.filter(i => i.severity === filters.severity);
+      if (typeof filters?.isApproved === "boolean") mock = mock.filter(i => i.isApproved === filters.isApproved);
+      if (filters?.userId) mock = mock.filter(i => i.userId === filters.userId);
+      return mock;
+    }
+    
+    // In production, we want to know if the DB is down
+    throw err;
   }
 }
+
 
 /** Fetch a single issue by id */
 export async function getDataById(id: string): Promise<WaterIssue | null> {
@@ -234,22 +243,28 @@ export async function createData(
       id: result.insertedId.toString()
     } as unknown as WaterIssue;
   } catch (err) {
-    console.warn("[MongoDB] createData failed, falling back to mock data:", err);
-    const mockDoc: WaterIssue = {
-      ...payload,
-      isApproved: false,
-      reactions: [],
-      comments: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      id: "mock-" + Math.random().toString(36).substring(2, 9),
-    } as WaterIssue;
-    globalStore.jalsuraksha_mock_issues?.push(mockDoc);
-    return mockDoc;
+    console.warn("[MongoDB] createData failed:", err);
+    
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      const mockDoc: WaterIssue = {
+        ...payload,
+        isApproved: false,
+        reactions: [],
+        comments: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        id: "mock-" + Math.random().toString(36).substring(2, 9),
+      } as WaterIssue;
+      globalStore.jalsuraksha_mock_issues?.push(mockDoc);
+      return mockDoc;
+    }
+    throw err;
   } finally {
     revalidatePath("/", "layout");
   }
 }
+
 
 /** Update an existing issue by id */
 export async function updateData(
@@ -276,21 +291,27 @@ export async function updateData(
       _id: undefined
     } as unknown as WaterIssue;
   } catch (err) {
-    console.warn("[MongoDB] updateData failed, falling back to mock data:", err);
-    const idx = globalStore.jalsuraksha_mock_issues?.findIndex(i => i.id === id);
-    if (idx === undefined || idx === -1) return null;
-    const updatedAt = new Date().toISOString();
-    const updated = {
-      ...globalStore.jalsuraksha_mock_issues![idx],
-      ...patch,
-      updatedAt
-    };
-    globalStore.jalsuraksha_mock_issues![idx] = updated;
-    return updated;
+    console.warn("[MongoDB] updateData failed:", err);
+    
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      const idx = globalStore.jalsuraksha_mock_issues?.findIndex(i => i.id === id);
+      if (idx === undefined || idx === -1) return null;
+      const updatedAt = new Date().toISOString();
+      const updated = {
+        ...globalStore.jalsuraksha_mock_issues![idx],
+        ...patch,
+        updatedAt
+      };
+      globalStore.jalsuraksha_mock_issues![idx] = updated;
+      return updated;
+    }
+    throw err;
   } finally {
     revalidatePath("/", "layout");
   }
 }
+
 
 /** Delete an issue by id */
 export async function deleteData(id: string): Promise<boolean> {
@@ -301,14 +322,20 @@ export async function deleteData(id: string): Promise<boolean> {
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
   } catch (err) {
-    console.warn("[MongoDB] deleteData failed, falling back to mock data:", err);
-    const prevLen = globalStore.jalsuraksha_mock_issues?.length || 0;
-    globalStore.jalsuraksha_mock_issues = globalStore.jalsuraksha_mock_issues?.filter(i => i.id !== id);
-    return (globalStore.jalsuraksha_mock_issues?.length || 0) < prevLen;
+    console.warn("[MongoDB] deleteData failed:", err);
+    
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      const prevLen = globalStore.jalsuraksha_mock_issues?.length || 0;
+      globalStore.jalsuraksha_mock_issues = globalStore.jalsuraksha_mock_issues?.filter(i => i.id !== id);
+      return (globalStore.jalsuraksha_mock_issues?.length || 0) < prevLen;
+    }
+    throw err;
   } finally {
     revalidatePath("/", "layout");
   }
 }
+
 
 // ─── CRUD — Reports ───────────────────────────────────────────────────────────
 
@@ -347,19 +374,24 @@ export async function createReport(payload: Omit<Report, "id" | "createdAt">): P
       id: result.insertedId.toString()
     } as unknown as Report;
   } catch (err) {
-    console.warn("[MongoDB] createReport failed, falling back to mock data:", err);
-    const now = new Date().toISOString();
-    const mockDoc: Report = {
-      ...payload,
-      createdAt: now,
-      id: "report-" + Math.random().toString(36).substring(2, 9),
-    };
-    globalStore.jalsuraksha_mock_reports?.push(mockDoc);
-    return mockDoc;
+    console.warn("[MongoDB] createReport failed:", err);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      const now = new Date().toISOString();
+      const mockDoc: Report = {
+        ...payload,
+        createdAt: now,
+        id: "report-" + Math.random().toString(36).substring(2, 9),
+      };
+      globalStore.jalsuraksha_mock_reports?.push(mockDoc);
+      return mockDoc;
+    }
+    throw err;
   } finally {
     revalidatePath("/", "layout");
   }
 }
+
 
 export async function deleteReport(id: string): Promise<boolean> {
   try {
@@ -367,14 +399,19 @@ export async function deleteReport(id: string): Promise<boolean> {
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
   } catch (err) {
-    console.warn("[MongoDB] deleteReport failed, falling back to mock data:", err);
-    const prevLen = globalStore.jalsuraksha_mock_reports?.length || 0;
-    globalStore.jalsuraksha_mock_reports = globalStore.jalsuraksha_mock_reports?.filter(r => r.id !== id);
-    return (globalStore.jalsuraksha_mock_reports?.length || 0) < prevLen;
+    console.warn("[MongoDB] deleteReport failed:", err);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      const prevLen = globalStore.jalsuraksha_mock_reports?.length || 0;
+      globalStore.jalsuraksha_mock_reports = globalStore.jalsuraksha_mock_reports?.filter(r => r.id !== id);
+      return (globalStore.jalsuraksha_mock_reports?.length || 0) < prevLen;
+    }
+    throw err;
   } finally {
     revalidatePath("/", "layout");
   }
 }
+
 
 // ─── Social Actions ──────────────────────────────────────────────────────────
 
@@ -399,20 +436,25 @@ export async function addReaction(id: string, userId: string): Promise<boolean> 
     );
     return true;
   } catch (err) {
-    console.warn("[MongoDB] addReaction failed, falling back to mock data:", err);
-    const issue = globalStore.jalsuraksha_mock_issues?.find(i => i.id === id);
-    if (!issue) return false;
-    const reactions = issue.reactions || [];
-    if (reactions.includes(userId)) {
-      issue.reactions = reactions.filter((u: string) => u !== userId);
-    } else {
-      issue.reactions = [...reactions, userId];
+    console.warn("[MongoDB] addReaction failed:", err);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      const issue = globalStore.jalsuraksha_mock_issues?.find(i => i.id === id);
+      if (!issue) return false;
+      const reactions = issue.reactions || [];
+      if (reactions.includes(userId)) {
+        issue.reactions = reactions.filter((u: string) => u !== userId);
+      } else {
+        issue.reactions = [...reactions, userId];
+      }
+      return true;
     }
-    return true;
+    throw err;
   } finally {
     revalidatePath("/", "layout");
   }
 }
+
 
 export async function addComment(id: string, comment: { userId: string, userName: string, text: string }): Promise<boolean> {
   try {
@@ -431,20 +473,25 @@ export async function addComment(id: string, comment: { userId: string, userName
     );
     return result.modifiedCount === 1;
   } catch (err) {
-    console.warn("[MongoDB] addComment failed, falling back to mock data:", err);
-    const issue = globalStore.jalsuraksha_mock_issues?.find(i => i.id === id);
-    if (!issue) return false;
-    const newComment = {
-      ...comment,
-      createdAt: new Date().toISOString()
-    };
-    if (!issue.comments) issue.comments = [];
-    issue.comments.push(newComment);
-    return true;
+    console.warn("[MongoDB] addComment failed:", err);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Falling back to mock data (Dev/Test only)");
+      const issue = globalStore.jalsuraksha_mock_issues?.find(i => i.id === id);
+      if (!issue) return false;
+      const newComment = {
+        ...comment,
+        createdAt: new Date().toISOString()
+      };
+      if (!issue.comments) issue.comments = [];
+      issue.comments.push(newComment);
+      return true;
+    }
+    throw err;
   } finally {
     revalidatePath("/", "layout");
   }
 }
+
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
