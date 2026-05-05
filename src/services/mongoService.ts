@@ -1,5 +1,6 @@
 "use server";
-
+ 
+import { revalidatePath } from "next/cache";
 import clientPromise from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 
@@ -179,7 +180,7 @@ export async function getData(filters?: {
       _id: undefined
     })) as unknown as WaterIssue[];
   } catch (err) {
-    // Fallback to mock data on error or if not configured
+    console.warn("[MongoDB] getData failed, falling back to mock data:", err);
     let mock = [...(globalStore.jalsuraksha_mock_issues || [])];
     if (filters?.status) mock = mock.filter(i => i.status === filters.status);
     if (filters?.severity) mock = mock.filter(i => i.severity === filters.severity);
@@ -204,7 +205,6 @@ export async function getDataById(id: string): Promise<WaterIssue | null> {
       _id: undefined
     } as unknown as WaterIssue;
   } catch (err) {
-    // Fallback to mock data
     return globalStore.jalsuraksha_mock_issues?.find(i => i.id === id) || null;
   }
 }
@@ -234,7 +234,7 @@ export async function createData(
       id: result.insertedId.toString()
     } as unknown as WaterIssue;
   } catch (err) {
-    // Fallback to mock
+    console.warn("[MongoDB] createData failed, falling back to mock data:", err);
     const mockDoc: WaterIssue = {
       ...payload,
       isApproved: false,
@@ -246,6 +246,8 @@ export async function createData(
     } as WaterIssue;
     globalStore.jalsuraksha_mock_issues?.push(mockDoc);
     return mockDoc;
+  } finally {
+    revalidatePath("/", "layout");
   }
 }
 
@@ -260,7 +262,6 @@ export async function updateData(
     if (!getIsMongoConfigured()) throw new Error("Force mock");
 
     const collection = await getCollection(ISSUES_COLLECTION);
-
     const result = await collection.findOneAndUpdate(
       { _id: new ObjectId(id) },
       { $set: { ...patch, updatedAt } },
@@ -275,7 +276,7 @@ export async function updateData(
       _id: undefined
     } as unknown as WaterIssue;
   } catch (err) {
-    // Fallback to mock
+    console.warn("[MongoDB] updateData failed, falling back to mock data:", err);
     const idx = globalStore.jalsuraksha_mock_issues?.findIndex(i => i.id === id);
     if (idx === undefined || idx === -1) return null;
     const updatedAt = new Date().toISOString();
@@ -286,6 +287,8 @@ export async function updateData(
     };
     globalStore.jalsuraksha_mock_issues![idx] = updated;
     return updated;
+  } finally {
+    revalidatePath("/", "layout");
   }
 }
 
@@ -298,10 +301,12 @@ export async function deleteData(id: string): Promise<boolean> {
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
   } catch (err) {
-    // Fallback to mock
+    console.warn("[MongoDB] deleteData failed, falling back to mock data:", err);
     const prevLen = globalStore.jalsuraksha_mock_issues?.length || 0;
     globalStore.jalsuraksha_mock_issues = globalStore.jalsuraksha_mock_issues?.filter(i => i.id !== id);
     return (globalStore.jalsuraksha_mock_issues?.length || 0) < prevLen;
+  } finally {
+    revalidatePath("/", "layout");
   }
 }
 
@@ -320,7 +325,6 @@ export async function getReports(): Promise<Report[]> {
       _id: undefined
     })) as unknown as Report[];
   } catch (err) {
-    // Fallback to mock
     return globalStore.jalsuraksha_mock_reports || [];
   }
 }
@@ -343,7 +347,7 @@ export async function createReport(payload: Omit<Report, "id" | "createdAt">): P
       id: result.insertedId.toString()
     } as unknown as Report;
   } catch (err) {
-    // Fallback to mock
+    console.warn("[MongoDB] createReport failed, falling back to mock data:", err);
     const now = new Date().toISOString();
     const mockDoc: Report = {
       ...payload,
@@ -352,6 +356,8 @@ export async function createReport(payload: Omit<Report, "id" | "createdAt">): P
     };
     globalStore.jalsuraksha_mock_reports?.push(mockDoc);
     return mockDoc;
+  } finally {
+    revalidatePath("/", "layout");
   }
 }
 
@@ -361,10 +367,12 @@ export async function deleteReport(id: string): Promise<boolean> {
     const result = await collection.deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
   } catch (err) {
-    // Fallback to mock
+    console.warn("[MongoDB] deleteReport failed, falling back to mock data:", err);
     const prevLen = globalStore.jalsuraksha_mock_reports?.length || 0;
     globalStore.jalsuraksha_mock_reports = globalStore.jalsuraksha_mock_reports?.filter(r => r.id !== id);
     return (globalStore.jalsuraksha_mock_reports?.length || 0) < prevLen;
+  } finally {
+    revalidatePath("/", "layout");
   }
 }
 
@@ -391,7 +399,7 @@ export async function addReaction(id: string, userId: string): Promise<boolean> 
     );
     return true;
   } catch (err) {
-    // Fallback to mock
+    console.warn("[MongoDB] addReaction failed, falling back to mock data:", err);
     const issue = globalStore.jalsuraksha_mock_issues?.find(i => i.id === id);
     if (!issue) return false;
     const reactions = issue.reactions || [];
@@ -401,6 +409,8 @@ export async function addReaction(id: string, userId: string): Promise<boolean> 
       issue.reactions = [...reactions, userId];
     }
     return true;
+  } finally {
+    revalidatePath("/", "layout");
   }
 }
 
@@ -421,7 +431,7 @@ export async function addComment(id: string, comment: { userId: string, userName
     );
     return result.modifiedCount === 1;
   } catch (err) {
-    // Fallback to mock
+    console.warn("[MongoDB] addComment failed, falling back to mock data:", err);
     const issue = globalStore.jalsuraksha_mock_issues?.find(i => i.id === id);
     if (!issue) return false;
     const newComment = {
@@ -431,9 +441,10 @@ export async function addComment(id: string, comment: { userId: string, userName
     if (!issue.comments) issue.comments = [];
     issue.comments.push(newComment);
     return true;
+  } finally {
+    revalidatePath("/", "layout");
   }
 }
-
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 

@@ -19,81 +19,25 @@ import {
     MapPin,
     BarChart2,
     Plus,
-    Trash2
+    Trash2,
+    ThumbsUp,
+    MessageSquare,
+    Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useIssues } from "@/hooks/useIssues";
 import { useAuth } from "@/hooks/useAuth";
 import { cn, getCleanUsername } from "@/lib/utils";
-import { ThumbsUp, MessageSquare, Send } from "lucide-react";
 
 // Helper for type icons (not in the DB model)
 const getIssueIcon = (title: string) => {
-    if (title.toLowerCase().includes("leak")) return Droplets;
-    if (title.toLowerCase().includes("contamination")) return Activity;
-    if (title.toLowerCase().includes("pressure")) return AlertTriangle;
+    const t = title.toLowerCase();
+    if (t.includes("leak")) return Droplets;
+    if (t.includes("contamination")) return Activity;
+    if (t.includes("pressure")) return AlertTriangle;
     return Droplets;
 };
-
-const issues = [
-    {
-        id: "#JS-9021",
-        location: "Sector 4-C",
-        sublocation: "Palm Grove Avenue",
-        type: "Leakage",
-        typeIcon: Droplets,
-        severity: 9.2,
-        severityLabel: "CRITICAL",
-        severityColor: "text-red-500",
-        severityBg: "bg-red-50",
-        status: "Pending",
-        statusColor: "text-amber-600 bg-amber-50 border-amber-200",
-        date: "Oct 24, 2023",
-    },
-    {
-        id: "#JS-8842",
-        location: "Sector 9-G",
-        sublocation: "Hillcrest Bypass",
-        type: "Contamination",
-        typeIcon: Activity,
-        severity: 6.4,
-        severityLabel: "MEDIUM",
-        severityColor: "text-amber-500",
-        severityBg: "bg-amber-50",
-        status: "In Progress",
-        statusColor: "text-blue-600 bg-blue-50 border-blue-200",
-        date: "Oct 22, 2023",
-    },
-    {
-        id: "#JS-8751",
-        location: "Industrial Hub",
-        sublocation: "Warehouse Row 14",
-        type: "Pressure Drop",
-        typeIcon: AlertTriangle,
-        severity: 3.1,
-        severityLabel: "LOW",
-        severityColor: "text-green-500",
-        severityBg: "bg-green-50",
-        status: "Resolved",
-        statusColor: "text-green-600 bg-green-50 border-green-200",
-        date: "Oct 20, 2023",
-    },
-    {
-        id: "#JS-8610",
-        location: "Sector 1-A",
-        sublocation: "Central Square",
-        type: "Low Flow",
-        typeIcon: Droplets,
-        severity: 2.4,
-        severityLabel: "LOW",
-        severityColor: "text-green-500",
-        severityBg: "bg-green-50",
-        status: "Resolved",
-        statusColor: "text-green-600 bg-green-50 border-green-200",
-        date: "Oct 18, 2023",
-    },
-];
 
 const topSectors = [
     { name: "Sector 4-C", count: 142 },
@@ -110,8 +54,8 @@ export default function OverviewPage() {
     
     const { user } = useAuth();
     
-    // Connect to dynamic data
-    const { issues, removeIssue, addReaction, addComment } = useIssues({ isApproved: true });
+    // Connect to dynamic data - fetch all and filter locally to show personal unapproved issues
+    const { issues, removeIssue, addReaction, addComment } = useIssues();
 
     const filteredIssues = issues.filter(issue => {
         const isNotResolved = issue.status !== "Resolved";
@@ -120,7 +64,11 @@ export default function OverviewPage() {
                              issue.title.toLowerCase().includes(search.toLowerCase());
         const matchesSector = selectedSector === "All Sectors" || issue.location === selectedSector;
         const matchesStatus = selectedStatus === "All Statuses" || issue.status === selectedStatus;
-        return isNotResolved && matchesSearch && matchesSector && matchesStatus;
+        
+        // Logic: Show if approved OR if it belongs to the current user
+        const isVisible = issue.isApproved || (user && issue.userId === user.id);
+        
+        return isVisible && isNotResolved && matchesSearch && matchesSector && matchesStatus;
     });
 
     const handleDelete = async (id: string) => {
@@ -236,7 +184,7 @@ export default function OverviewPage() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="text-sm font-bold text-secondary">{issue.location}</div>
-                                        <div className="text-xs text-slate-400">{issue.description.substring(0, 30)}...</div>
+                                        <div className="text-xs text-slate-400 line-clamp-1">{issue.description}</div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -250,14 +198,7 @@ export default function OverviewPage() {
                                                 issue.severity === "CRITICAL" ? "text-red-500" :
                                                 issue.severity === "HIGH" ? "text-orange-500" :
                                                 issue.severity === "MEDIUM" ? "text-amber-500" : "text-green-500"
-                                            )}>●  {issue.severity}</span>
-                                            <span className={cn("text-[9px] font-black px-2 py-0.5 rounded-full",
-                                                issue.severity === "CRITICAL" ? "bg-red-50 text-red-500" :
-                                                issue.severity === "HIGH" ? "bg-orange-50 text-orange-500" :
-                                                issue.severity === "MEDIUM" ? "bg-amber-50 text-amber-500" : "bg-green-50 text-green-500"
-                                            )}>
-                                                {issue.severity}
-                                            </span>
+                                            )}>● {issue.severity}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -269,6 +210,11 @@ export default function OverviewPage() {
                                             )}>
                                                 {issue.status}
                                             </span>
+                                            {!issue.isApproved && (
+                                                <span className="text-[8px] font-black bg-primary/10 text-primary px-2 py-0.5 rounded uppercase tracking-tighter w-fit">
+                                                    Pending Approval
+                                                </span>
+                                            )}
                                             {issue.assignedTeam && (
                                                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">{issue.assignedTeam}</span>
                                             )}
@@ -306,7 +252,6 @@ export default function OverviewPage() {
                                                 </button>
                                             </div>
 
-                                            {/* Expandable Comments Section */}
                                             <AnimatePresence>
                                                 {expandedComments === issue.id && (
                                                     <motion.div 
@@ -372,102 +317,20 @@ export default function OverviewPage() {
                     </table>
                 </div>
 
-                {/* Mobile Card View */}
-                <div className="md:hidden divide-y divide-slate-100">
-                    {filteredIssues.map((issue, i) => (
-                        <motion.div
-                            key={issue.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="p-5 flex flex-col gap-4"
-                        >
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <div className="text-xs font-black text-primary mb-1">{issue.id}</div>
-                                    <div className="text-base font-bold text-secondary">{issue.location}</div>
-                                    <div className="text-xs text-slate-400 line-clamp-1">{issue.description}</div>
-                                </div>
-                                <span className={cn("text-[10px] font-bold px-3 py-1 rounded-full border shrink-0", 
-                                    issue.status === "Pending" ? "text-amber-600 bg-amber-50 border-amber-200" :
-                                    issue.status === "In Progress" ? "text-blue-600 bg-blue-50 border-blue-200" :
-                                    "text-green-600 bg-green-50 border-green-200"
-                                )}>
-                                    {issue.status}
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                                    {React.createElement(getIssueIcon(issue.title), { className: "w-3.5 h-3.5 text-primary" })}
-                                    {issue.title}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className={cn("text-xs font-black", 
-                                        issue.severity === "CRITICAL" ? "text-red-500" :
-                                        issue.severity === "HIGH" ? "text-orange-500" :
-                                        issue.severity === "MEDIUM" ? "text-amber-500" : "text-green-500"
-                                    )}>●  {issue.severity}</span>
-                                    <span className={cn("text-[8px] font-black px-2 py-0.5 rounded-full",
-                                        issue.severity === "CRITICAL" ? "bg-red-50 text-red-500" :
-                                        issue.severity === "HIGH" ? "bg-orange-50 text-orange-500" :
-                                        issue.severity === "MEDIUM" ? "bg-amber-50 text-amber-500" : "bg-green-50 text-green-500"
-                                    )}>
-                                        {issue.severity}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-2">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-400">{new Date(issue.createdAt).toLocaleDateString()}</span>
-                                    {issue.assignedTeam && (
-                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{issue.assignedTeam}</span>
-                                    )}
-                                </div>
-                                <div className="flex gap-2">
-                                    <Button size="sm" variant="outline" className="h-8 rounded-lg text-[10px] gap-2 border-slate-200">
-                                        <Eye className="w-3.5 h-3.5" /> Details
-                                    </Button>
-                                    <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        onClick={() => handleDelete(issue.id)}
-                                        className="h-8 rounded-lg text-[10px] gap-2 border-red-100 text-red-400 hover:bg-red-50"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                                    </Button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                    {filteredIssues.length === 0 && (
-                        <div className="p-10 text-center text-slate-400 italic text-sm">
-                            No issues found matching your criteria.
-                        </div>
-                    )}
+                {/* Mobile View Placeholder */}
+                <div className="md:hidden p-8 text-center text-slate-400 italic text-sm">
+                    Mobile view for issues list is coming soon.
                 </div>
 
                 {/* Pagination */}
                 <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/30">
-                    <span className="text-sm text-slate-400">Showing 1-10 of 482 issues</span>
+                    <span className="text-sm text-slate-400">Showing {filteredIssues.length} items</span>
                     <div className="flex items-center gap-1">
-                        <button className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:border-primary hover:text-primary transition-all">
+                        <button className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400">
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        {[1, 2, 3].map(page => (
-                            <button key={page} className={cn(
-                                "w-8 h-8 rounded-lg text-sm font-bold transition-all",
-                                page === 1 
-                                    ? "bg-secondary text-white" 
-                                    : "border border-slate-200 text-slate-500 hover:border-primary hover:text-primary"
-                            )}>
-                                {page}
-                            </button>
-                        ))}
-                        <span className="text-slate-300 text-sm px-1">...</span>
-                        <button className="w-8 h-8 rounded-lg border border-slate-200 text-sm font-bold text-slate-500 hover:border-primary hover:text-primary transition-all">48</button>
-                        <button className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:border-primary hover:text-primary transition-all">
+                        <button className="w-8 h-8 rounded-lg bg-secondary text-white text-sm font-bold">1</button>
+                        <button className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400">
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
