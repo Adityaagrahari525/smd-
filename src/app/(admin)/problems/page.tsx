@@ -70,7 +70,10 @@ export default function ProblemListPage() {
         const currentIndex = statuses.indexOf(currentStatus as WaterIssue["status"]);
         const nextStatus = statuses[(currentIndex + 1) % statuses.length];
         
-        const success = await editIssue(id, { status: nextStatus });
+        await editIssue(id, { 
+            status: nextStatus,
+            isApproved: true
+        });
     };
 
     const handleGenerateReport = async (issue: WaterIssue) => {
