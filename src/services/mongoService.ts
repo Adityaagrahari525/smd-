@@ -58,9 +58,15 @@ const USERS_COLLECTION = "users";
 
 function getIsMongoConfigured() {
   const uri = process.env.MONGODB_URI;
-  const isPlaceholder = uri?.includes("cluster.mongodb.net") && uri?.includes("admin:password");
+  const isPlaceholder = !uri || uri.includes("admin:password") || uri.includes("cluster0.abcde.mongodb.net");
+  
+  if (isPlaceholder && process.env.NODE_ENV === "production") {
+    console.error("CRITICAL: MongoDB URI is missing or using a placeholder in production! Data synchronization will NOT work.");
+  }
+  
   return !!(uri && !isPlaceholder) && process.env.DISABLE_MONGO !== "true";
 }
+
 
 // Use global storage for mock data to persist across HMR in development
 const globalStore = global as typeof globalThis & {
@@ -139,16 +145,17 @@ if (!globalStore.jalsuraksha_mock_reports) {
 
 async function getCollection(name: string) {
   if (!getIsMongoConfigured()) {
-    throw new Error("MongoDB not configured. Using Mock mode.");
+    throw new Error("MongoDB Connection Error: The MONGODB_URI environment variable is missing or invalid. Please check your Vercel project settings.");
   }
   try {
     const client = await clientPromise;
     return client.db(DB_NAME).collection(name);
   } catch (error) {
-    console.error("MongoDB Connection Failed, falling back to mock:", error);
-    throw new Error("MongoDB connection failed");
+    console.error("MongoDB Connection Failed:", error);
+    throw new Error("MongoDB Connection Error: Failed to connect to the database. Ensure your IP is whitelisted (0.0.0.0/0) in MongoDB Atlas.");
   }
 }
+
 
 // ─── CRUD — Issues ────────────────────────────────────────────────────────────
 
